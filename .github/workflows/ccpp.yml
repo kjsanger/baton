@@ -21,8 +21,8 @@ jobs:
 
     container:
       image: docker://wsinpg/ub-12.04-conda:latest
-      volumes:
-        - ./conda_home:/home/conda
+#      volumes:
+#        - ./conda_home:/home/conda
 
     steps:      
       - uses: actions/checkout@v1
@@ -45,9 +45,10 @@ jobs:
           find $CONDA_INSTALL_DIR/etc
           env
           
-      - name: bar
-        run:
-          ls -l ./conda_home/*
+#      - name: bar
+#        run:
+#          ls -l ./conda_home/*
+
   
         
 

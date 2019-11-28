@@ -41,11 +41,13 @@ jobs:
           export PATH="$CONDA_INSTALL_DIR/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
           
           gosu $CONDA_USER /bin/bash
+          id
+          
           ls $CONDA_INSTALL_DIR
           find $CONDA_INSTALL_DIR/etc
+          env
           source /opt/conda/etc/profile.d/conda.sh
           conda activate
-          env
           
 #      - name: bar
 #        run:

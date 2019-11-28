@@ -4,7 +4,6 @@ on: [push]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     services:
       irods:
@@ -12,7 +11,10 @@ jobs:
         ports:
           - 1247:1247
 
-    steps:
-    - uses: actions/checkout@v1
-    - name: autoreconf
-      run: autoreconf -fi
+    container:
+      image: docker://wsinpg/ub-12.04-conda:latest
+
+    steps:      
+      - uses: actions/checkout@v1
+      - name: conda info
+        run: conda info

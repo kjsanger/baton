@@ -43,6 +43,8 @@ jobs:
           gosu $CONDA_USER /bin/bash
           ls $CONDA_INSTALL_DIR
           find $CONDA_INSTALL_DIR/etc
+          source /opt/conda/etc/profile.d/conda.sh
+          conda activate
           env
           
 #      - name: bar

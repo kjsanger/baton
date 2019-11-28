@@ -28,6 +28,7 @@ jobs:
       - uses: actions/checkout@v1
       - name: debug
         run: |
+          set -x
           chmod g+w "$CONDA_INSTALL_DIR"
           
           useradd --shell /bin/bash --uid $CONDA_USER_ID --gid $CONDA_GROUP_ID --non-unique --create-home $CONDA_USER --comment ""
@@ -36,6 +37,7 @@ jobs:
           
       - name: foo
         run: |
+          set -x
           export PATH="$CONDA_INSTALL_DIR/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
           
           gosu $CONDA_USER /bin/bash

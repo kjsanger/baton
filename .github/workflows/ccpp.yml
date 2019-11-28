@@ -4,6 +4,14 @@ on: [push]
 
 jobs:
   build:
+    env:
+      CONDA_USER_ID: 9001
+      CONDA_USER: conda
+      CONDA_GROUP_ID: 32001
+      CONDA_INSTALL_DIR: /opt/conda
+      CONDA_HOME: /home/conda
+      CONDA_BLD_PATH=: /home/conda/artefacts
+      
     runs-on: ubuntu-latest
     services:
       irods:
@@ -19,13 +27,6 @@ jobs:
     steps:      
       - uses: actions/checkout@v1
       - name: debug
-        env:
-         CONDA_USER_ID: 9001
-         CONDA_USER: conda
-         CONDA_GROUP_ID: 32001
-         CONDA_INSTALL_DIR: /opt/conda
-         CONDA_HOME: /home/conda
-         CONDA_BLD_PATH=: /home/conda/artefacts
         run: |
           chmod g+w "$CONDA_INSTALL_DIR"
           

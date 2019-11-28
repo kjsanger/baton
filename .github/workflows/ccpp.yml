@@ -40,7 +40,7 @@ jobs:
           set -ex
           export PATH="$CONDA_INSTALL_DIR/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
           
-          gosu $CONDA_USER /bin/bash
+          exec gosu $CONDA_USER /bin/bash
           id
           
           ls $CONDA_INSTALL_DIR

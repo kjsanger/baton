@@ -19,5 +19,5 @@ jobs:
       - name: debug
         run: |
           whoami
-          ls /opt
-          conda info
+          ls -l /home
+

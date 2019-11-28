@@ -40,8 +40,7 @@ jobs:
           
           gosu $CONDA_USER /bin/bash
           source $CONDA_INSTALL_DIR/etc/profile.d/conda.sh
-          conda activate
-          conda create -n foo -y
+          env
           
       - name: bar
         run:

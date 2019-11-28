@@ -16,9 +16,8 @@ jobs:
 
     steps:      
       - uses: actions/checkout@v1
-      - name: debug0
-        run: whoami
-      - name: debug1
-        run: ls /opt
-      - name: conda info
-        run: conda info
+      - name: debug
+        run: |
+          whoami
+          ls /opt
+          conda info

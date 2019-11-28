@@ -37,7 +37,14 @@ jobs:
           chown -R $USER:$USER /home/$USER
           chmod g+w "$CONDA_INSTALL_DIR"
 
-          exec gosu $USER whoami
+          exec gosu $USER /bin/bash
           ls -l $HOME
+          cd
+          touch foo
           
+      - name: foo
+        run: |
+          whoami
+          ls -l $HOME
+        
 

@@ -44,7 +44,7 @@ jobs:
           
       - name: foo
         run: |
-          whoami
-          ls -l $HOME
+          ls -l /home/conda
+  
         
 

@@ -14,7 +14,7 @@ jobs:
       
     runs-on: ubuntu-latest
     services:
-      irods:
+      irods-service:
         image: docker://wsinpg/ub-12.04-irods-4.1:latest
         ports:
           - 1247:1247
@@ -27,3 +27,6 @@ jobs:
       - uses: actions/checkout@v1
       - name: Setup Conda
         run: ./scripts/setup_conda.sh
+      - name: Setup iRODS
+        run: ./scripts/setup_irods.sh
+

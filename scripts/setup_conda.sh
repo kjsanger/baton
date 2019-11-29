@@ -9,6 +9,7 @@ conda config --add channels https://dnap.cog.sanger.ac.uk/npg/conda/devel/generi
 
 conda create -y -n github
 conda activate github
+
 conda install -y libjansson-dev
 conda install -y irods-dev
 conda install -y irods-icommands

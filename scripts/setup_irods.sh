@@ -15,6 +15,8 @@ cat <<EOF > $HOME/.irods/irods_environment.json
 }
 EOF
 
+conda activate github
+
 echo "irods" | script -q -c "iinit" /dev/null
 ienv
 ils

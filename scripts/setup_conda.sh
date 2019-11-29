@@ -21,7 +21,10 @@ cat <<EOF > ~/.irods/irods_environment.json
     "irods_user_name": "irods",
     "irods_zone_name": "testZone",
     "irods_home": "/testZone/home/irods",
-    "irods_plugins_home": "$HOME/miniconda/envs/github/lib/irods/plugins/",
+    "irods_plugins_home": "$CONDA_INSTALL_DIR/envs/github/lib/irods/plugins/",
     "irods_default_resource": "testResc"
 }
 EOF
+
+ienv
+ils

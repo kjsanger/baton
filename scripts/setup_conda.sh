@@ -13,8 +13,8 @@ conda install -y libjansson-dev
 conda install -y irods-dev
 conda install -y irods-icommands
 
-mkdir -p ~/.irods
-cat <<EOF > ~/.irods/irods_environment.json
+mkdir -p $HOME/.irods
+cat <<EOF > $HOME/.irods/irods_environment.json
 {
     "irods_host": "irods",
     "irods_port": 1247,
@@ -26,5 +26,6 @@ cat <<EOF > ~/.irods/irods_environment.json
 }
 EOF
 
+echo "irods" | script -q -c "iinit" /dev/null
 ienv
 ils

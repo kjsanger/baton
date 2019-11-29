@@ -21,38 +21,9 @@ jobs:
 
     container:
       image: docker://wsinpg/ub-12.04-conda:latest
-#      volumes:
-#        - ./conda_home:/home/conda
+      options: --entrypoint scripts/docker-entrypoint.sh
 
     steps:      
       - uses: actions/checkout@v1
-      - name: debug
-        run: |
-          set -ex
-          chmod g+w "$CONDA_INSTALL_DIR"
-          
-          useradd --shell /bin/bash --uid $CONDA_USER_ID --gid $CONDA_GROUP_ID --non-unique --create-home $CONDA_USER --comment ""
-          cp "$CONDA_INSTALL_DIR/etc/condarc" "$CONDA_HOME/.condarc"
-          chown -R $CONDA_USER:$CONDA_USER /home/$CONDA_USER
-          
-      - name: foo
-        run: |
-          set -ex
-          export PATH="$CONDA_INSTALL_DIR/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-          
-          exec gosu $CONDA_USER /bin/bash
-          id
-          
-          ls $CONDA_INSTALL_DIR
-          find $CONDA_INSTALL_DIR/etc
-          env
-          source /opt/conda/etc/profile.d/conda.sh
-          conda activate
-          
-#      - name: bar
-#        run:
-#          ls -l ./conda_home/*
-
-  
-        
-
+      - name: Setup Conda
+        run: ./scripts/setup_conda.sh

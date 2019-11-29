@@ -15,6 +15,8 @@ cat <<EOF > $HOME/.irods/irods_environment.json
 }
 EOF
 
+source $CONDA_INSTALL_DIR/etc/profile.d/conda.sh
+
 conda activate github
 
 echo "irods" | script -q -c "iinit" /dev/null

@@ -10,6 +10,8 @@ CONDA_ENV="$CONDA_INSTALL_DIR/envs/github"
 CPPFLAGS="-I$CONDA_ENV/include -I$CONDA_ENV/include/irods"
 LDFLAGS="-L$CONDA_ENV/lib -L$CONDA_ENV/lib/irods/externals"
 
+cd build
+
 autoreconf -fi
 
 ./configure --with-test-resource=testResc \

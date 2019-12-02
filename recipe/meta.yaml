@@ -24,6 +24,7 @@ requirements:
     - make
     - perl
     - pkg-config
+    - sphinx
   host:
     - irods-dev ==4.1.12
     - libjansson-dev

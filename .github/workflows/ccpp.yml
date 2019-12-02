@@ -30,4 +30,5 @@ jobs:
       - name: Setup iRODS
         run: ./scripts/setup_irods.sh
       - name: Build baton
-        run: ./scripts/
+        run: ./scripts/build_baton.sh
+

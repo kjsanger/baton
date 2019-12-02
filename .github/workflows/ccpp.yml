@@ -29,4 +29,5 @@ jobs:
         run: ./scripts/setup_conda.sh
       - name: Setup iRODS
         run: ./scripts/setup_irods.sh
-
+      - name: Build baton
+        run: ./scripts/

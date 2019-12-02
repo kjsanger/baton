@@ -27,7 +27,5 @@ jobs:
       - uses: actions/checkout@v1
       - name: Setup Conda
         run: ./scripts/setup_conda.sh
-      - name: Setup iRODS
-        run: ./scripts/setup_irods.sh
       - name: Build baton
         run: conda build recipe

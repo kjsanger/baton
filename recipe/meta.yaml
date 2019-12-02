@@ -19,6 +19,7 @@ requirements:
     - autoconf
     - automake
     - check
+    - irods-icommands
     - libtool
     - make
     - perl

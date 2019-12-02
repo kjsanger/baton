@@ -28,4 +28,4 @@ jobs:
       - name: Setup Conda
         run: ./scripts/setup_conda.sh
       - name: Build baton
-        run: conda build recipe
+        run: ./scripts/build_baton.sh

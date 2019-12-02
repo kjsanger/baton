@@ -30,4 +30,4 @@ jobs:
       - name: Setup iRODS
         run: ./scripts/setup_irods.sh
       - name: Build baton
-        run: ./scripts/build_baton.sh
+        run: conda build recipe

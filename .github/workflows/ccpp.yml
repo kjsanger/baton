@@ -22,8 +22,6 @@ jobs:
     container:
       image: docker://wsinpg/ub-12.04-conda:latest
       options: --entrypoint scripts/docker-entrypoint.sh
-      volumes:
-        - $GITHUB_WORKSPACE/baton:/home/conda/build
 
     steps:    
       - uses: actions/checkout@v1

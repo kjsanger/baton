@@ -12,6 +12,13 @@ conda create -y -n github
 conda activate github
 
 conda install -y libjansson-dev
+conda install -y libssl-dev
 conda install -y irods-dev
 conda install -y irods-icommands
 conda install check
+
+conda install -y autoconf
+conda install -y automake
+conda install -y libtool
+conda install -y make
+conda install pkg-config

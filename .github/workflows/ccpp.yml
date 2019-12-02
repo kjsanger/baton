@@ -11,7 +11,7 @@ jobs:
       CONDA_INSTALL_DIR: /opt/conda
       CONDA_HOME: /home/conda
       CONDA_BLD_PATH: /home/conda/artefacts
-      
+
     runs-on: ubuntu-latest
     services:
       irods-service:
@@ -31,4 +31,3 @@ jobs:
         run: ./scripts/setup_irods.sh
       - name: Build baton
         run: ./scripts/build_baton.sh
-

@@ -24,9 +24,13 @@ ils
 autoreconf -fi
 
 export LD_LIBRARY_PATH="$PREFIX/lib"
+export CPPFLAGS="-I$PREFIX/include -I$PREFIX/include/irods"
+export LDFLAGS="-L$PREFIX/lib -L$PREFIX/lib/irods/externals"
+
+
 ./configure --prefix="$PREFIX" --with-test-resource=demoResc \
-            CPPFLAGS="-I$PREFIX/include -I$PREFIX/include/irods" \
-            LDFLAGS="-L$PREFIX/lib -L$PREFIX/lib/irods/externals"
+            CPPFLAGS="$CPPFLAGS" \
+            LDFLAGS="$LDFLAGS"
 
 export CK_DEFAULT_TIMEOUT=20
 make distcheck DISTCHECK_CONFIGURE_FLAGS="--with-test-resource=demoResc CPPFLAGS=\"$CPPFLAGS\" LDFLAGS=\"$LDFLAGS\""

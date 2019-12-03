@@ -24,15 +24,12 @@ requirements:
     - make
     - perl
     - pkg-config
-
   host:
     - irods-dev ==4.1.12
     - libjansson-dev
     - libssl-dev
     - sphinx
-
   run:
-    - baton
     - irods-plugins ==4.1.12
     - libjansson
     - libssl

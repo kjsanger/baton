@@ -25,9 +25,8 @@ requirements:
     - perl
     - pkg-config
 
-host:
+  host:
     - irods-dev ==4.1.12
     - libjansson-dev
     - libssl-dev
     - sphinx
-      

@@ -1,5 +1,5 @@
 package:
-  name: baton-pkg
+  name: baton
   version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
 
 about:
@@ -30,3 +30,9 @@ requirements:
     - libjansson-dev
     - libssl-dev
     - sphinx
+
+  run:
+    - baton
+    - irods-plugins ==4.1.12
+    - libjansson
+    - libssl

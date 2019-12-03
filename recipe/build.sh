@@ -29,4 +29,4 @@ export LD_LIBRARY_PATH="$PREFIX/lib"
             LDFLAGS="-L$PREFIX/lib -L$PREFIX/lib/irods/externals"
 
 export CK_DEFAULT_TIMEOUT=20
-make -j $n distcheck DISTCHECK_CONFIGURE_FLAGS="--with-test-resource=demoResc CPPFLAGS=\"$CPPFLAGS\" LDFLAGS=\"$LDFLAGS\""
+make distcheck DISTCHECK_CONFIGURE_FLAGS="--with-test-resource=demoResc CPPFLAGS=\"$CPPFLAGS\" LDFLAGS=\"$LDFLAGS\""

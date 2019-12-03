@@ -30,7 +30,7 @@ export LDFLAGS="-L$PREFIX/lib -L$PREFIX/lib/irods/externals"
 ./configure --prefix="$PREFIX" --with-test-resource=demoResc \
             CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS"
 
-export CK_DEFAULT_TIMEOUT=20
+export CK_DEFAULT_TIMEOUT=20 make check
 make -j $n
 make check
 make install

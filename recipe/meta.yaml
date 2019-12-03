@@ -18,13 +18,13 @@ requirements:
     - {{ compiler("c") }}
     - autoconf
     - automake
-    - check
     - irods-icommands
     - libtool
     - make
     - perl
     - pkg-config
   host:
+    - check
     - irods-dev ==4.1.12
     - libjansson-dev
     - libssl-dev

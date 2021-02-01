@@ -1,6 +1,6 @@
 /**
- * Copyright (C) 2013, 2014, 2015, 2017, 2019 Genome Research Ltd. All
- * rights reserved.
+ * Copyright (C) 2013, 2014, 2015, 2017, 2019, 2021 Genome Research
+ * Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -606,6 +606,10 @@ int op_checksum_p(json_t *operation_args) {
     return json_is_true(json_object_get(operation_args, JSON_OP_CHECKSUM));
 }
 
+int op_verify_p(json_t *operation_args) {
+    return json_is_true(json_object_get(operation_args, JSON_OP_VERIFY));
+}
+
 int op_force_p(json_t *operation_args) {
     return json_is_true(json_object_get(operation_args, JSON_OP_FORCE));
 }
@@ -1013,6 +1017,24 @@ int add_result(json_t *object, json_t *result, baton_error_t *error) {
 
 error:
     return error->code;
+}
+
+json_t *checksum_to_json(char *checksum, baton_error_t *error) {
+    json_t *chksum   = NULL;
+
+    chksum = json_pack("s", checksum);
+    if (!chksum) {
+        set_baton_error(error, -1, "Failed to pack checksum '%s' as JSON",
+                        checksum);
+        goto error;
+    }
+
+    return chksum;
+
+error:
+    if (chksum) json_decref(chksum);
+
+    return NULL;
 }
 
 json_t *data_object_parts_to_json(const char *coll_name,

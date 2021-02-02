@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
             {"unbuffered",    no_argument, &unbuffered_flag,    1},
             {"unsafe",        no_argument, &unsafe_flag,        1},
             {"verbose",       no_argument, &verbose_flag,       1},
-	    {"verify",        no_argument, &verify_flag,        1},
+            {"verify",        no_argument, &verify_flag,        1},
             {"version",       no_argument, &version_flag,       1},
             {"wlock",         no_argument, &wlock_flag,         1},
             // Indexed options
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
         "  --unsafe        Permit unsafe relative iRODS paths.\n"
         "  --verbose       Print verbose messages to STDERR.\n"
         "  --verify        Calculate and register a checksum on the server\n"
-        "                  side and verify against a locally-calculatedan"
+        "                  side and verify against a locally-calculated\n"
         "                  checksum\n"
         "  --version       Print the version number and exit.\n"
         "  --wlock         Enable server-side advisory write locking.\n"

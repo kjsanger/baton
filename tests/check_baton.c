@@ -480,7 +480,7 @@ START_TEST(test_list_obj) {
     ck_assert_int_eq(json_array_size(timestamps), num_timestamps);
 
     // These are processed timestamps where there is a separate JSON
-    // object for created and modified stamps and the times are
+    // object for created and modified stamps, and the times are
     // ISO8601 format.
     size_t index;
     json_t *timestamp;
@@ -554,6 +554,25 @@ START_TEST(test_list_coll) {
 
     json_decref(results);
     json_decref(expected);
+
+    // With timestamps
+    baton_error_t error2;
+    json_t *results2 = list_path(conn, &rods_path, PRINT_TIMESTAMP, &error2);
+    ck_assert_int_eq(error2.code, 0);
+
+    json_t *timestamps = json_object_get(results2, JSON_TIMESTAMPS_KEY);
+    ck_assert(json_is_array(timestamps));
+    ck_assert_int_eq(json_array_size(timestamps), 2); // Created, modified
+
+    size_t index;
+    json_t *timestamp;
+    json_array_foreach(timestamps, index, timestamp) {
+        ck_assert_int_eq(json_object_size(timestamp), 1);
+        ck_assert(json_object_get(timestamp, JSON_CREATED_KEY) ||
+                  json_object_get(timestamp, JSON_MODIFIED_KEY));
+    }
+
+    json_decref(results2);
 
     if (conn) rcDisconnect(conn);
 }
@@ -730,10 +749,10 @@ START_TEST(test_list_permissions_obj) {
 
     baton_error_t error;
     json_t *results = list_permissions(conn, &rods_path, &error);
-    const json_t *expected = json_pack("[{s:s, s:s, s:s}]",
-                                       JSON_OWNER_KEY, env.rodsUserName,
-                                       JSON_ZONE_KEY,  env.rodsZone,
-                                       JSON_LEVEL_KEY, ACCESS_OWN);
+    json_t *expected = json_pack("[{s:s, s:s, s:s}]",
+                                 JSON_OWNER_KEY, env.rodsUserName,
+                                 JSON_ZONE_KEY,  env.rodsZone,
+                                 JSON_LEVEL_KEY, ACCESS_OWN);
 
     ck_assert_int_eq(json_equal(results, expected), 1);
     ck_assert_int_eq(error.code, 0);
@@ -760,10 +779,10 @@ START_TEST(test_list_permissions_coll) {
 
     baton_error_t error;
     json_t *results = list_permissions(conn, &rods_path, &error);
-    const json_t *expected = json_pack("[{s:s, s:s, s:s}]",
-                                       JSON_OWNER_KEY, env.rodsUserName,
-                                       JSON_ZONE_KEY,  env.rodsZone,
-                                       JSON_LEVEL_KEY, ACCESS_OWN);
+    json_t *expected = json_pack("[{s:s, s:s, s:s}]",
+                                 JSON_OWNER_KEY, env.rodsUserName,
+                                 JSON_ZONE_KEY,  env.rodsZone,
+                                 JSON_LEVEL_KEY, ACCESS_OWN);
 
     ck_assert_int_eq(json_equal(results, expected), 1);
     ck_assert_int_eq(error.code, 0);
@@ -1780,9 +1799,9 @@ START_TEST(test_contains_avu) {
     json_t *avu2 = json_pack("{s:s, s:s}",
                              JSON_ATTRIBUTE_KEY, "baz",
                              JSON_VALUE_KEY,     "qux");
-    const json_t *avu3 = json_pack("{s:s, s:s}",
-                                   JSON_ATTRIBUTE_KEY, "baz",
-                                   JSON_VALUE_KEY,     "zab");
+    json_t *avu3 = json_pack("{s:s, s:s}",
+                             JSON_ATTRIBUTE_KEY, "baz",
+                             JSON_VALUE_KEY,     "zab");
 
     json_t *avus = json_pack("[o, o]", avu1, avu2);
 
@@ -2634,9 +2653,9 @@ START_TEST(test_regression_github_issue83) {
                              JSON_VALUE_KEY,     "z");
 
     flags = SEARCH_OBJECTS;
-    const json_t *expected = json_pack("[{s:s, s:s}]",
-                                       JSON_COLLECTION_KEY, rods_path.outPath,
-                                       JSON_DATA_OBJECT_KEY, "r1.txt");
+    json_t *expected = json_pack("[{s:s, s:s}]",
+                                 JSON_COLLECTION_KEY, rods_path.outPath,
+                                 JSON_DATA_OBJECT_KEY, "r1.txt");
 
     // 2 AVUs, the base case.
     json_t *query1 = json_pack("{s:s, s:[o, o]}",

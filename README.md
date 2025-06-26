@@ -38,17 +38,18 @@ online at http://wtsi-npg.github.io/baton/
 
 ## iRODS compatibility:
 
-Compatible with iRODS 4.1.x, 4.2.x and 4.3.x
+Compatible with iRODS 4.1.x, 4.2.x, 4.3.x and 5.0.x
 
-  |baton version | Compatible iRODS versions|
-  |--------------|--------------------------|
-  | 2.0.x        | 4.1.x - 4.2.7            |
-  | 2.1.x        | 4.1.x - 4.2.7            |
-  | 3.0.x        | 4.2.7 - 4.2.8            |
-  | 3.1.x        | 4.2.7 - 4.2.9            |
-  | 3.2.x        | 4.2.7 - 4.2.11           |
-  | 3.3.x        | 4.2.7 - 4.2.11           |
-  | 4.2.x        | 4.2.7 - 4.3.3            |
+  | baton version | Compatible iRODS versions |
+  |---------------|---------------------------|
+  | 2.0.x         | 4.1.x - 4.2.7             |
+  | 2.1.x         | 4.1.x - 4.2.7             |
+  | 3.0.x         | 4.2.7 - 4.2.8             |
+  | 3.1.x         | 4.2.7 - 4.2.9             |
+  | 3.2.x         | 4.2.7 - 4.2.11            |
+  | 3.3.x         | 4.2.7 - 4.2.11            |
+  | 4.2.x         | 4.2.7 - 4.3.3             |
+  | 5.x.x         | 4.2.7 - 5.0.1             |
 
 
 Note that building against iRODS 4.3.0 requires 
@@ -81,7 +82,7 @@ The steps are summarised below:
     make install   # Install
 
 If you have iRODS headers and libraries installed in a non-standard
-place, you will need to set the CPPFLAGS and LDFLAGS environmment
+place, you will need to set the CPPFLAGS and LDFLAGS environment 
 variables appropriately. E.g.
 
     CPPFLAGS="-I/path/to/irods/headers" LDFLAGS="-L/path/to/irods/libraries" ./configure
@@ -115,7 +116,7 @@ baton, see the manual in the doc directory.
 
 ## Dependencies:
 
-- iRODS   https://github.com/irods/irods , versions 4.1.x, 4.2.x, 4.3.x
+- iRODS   https://github.com/irods/irods , versions 4.1.x, 4.2.x, 4.3.x, 5.x.x
 - Jansson https://github.com/akheron/jansson.git , versions >= 2.6
 
 ### Optional dependencies:

@@ -539,22 +539,27 @@ json_t *search_metadata(rcComm_t *conn, json_t *query, char *zone_name,
     }
 
     if (flags & PRINT_ACL) {
+        logmsg(DEBUG, "Adding ACL properties to output");
         results = add_acl_json_array(conn, results, error);
         if (error->code != 0) goto error;
     }
     if (flags & PRINT_AVU) {
+        logmsg(DEBUG, "Adding AVU properties to output");
         results = add_avus_json_array(conn, results, error);
         if (error->code != 0) goto error;
     }
     if (flags & PRINT_CHECKSUM) {
+        logmsg(DEBUG, "Adding checksum properties to output");
         results = add_checksum_json_array(conn, results, error);
         if (error->code != 0) goto error;
     }
     if (flags & PRINT_TIMESTAMP) {
+        logmsg(DEBUG, "Adding timestamp properties to output");
         results = add_tps_json_array(conn, results, error);
         if (error->code != 0) goto error;
     }
     if (flags & PRINT_REPLICATE) {
+        logmsg(DEBUG, "Adding replicate properties to output");
         results = add_repl_json_array(conn, results, error);
         if (error->code != 0) goto error;
     }

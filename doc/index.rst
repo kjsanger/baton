@@ -348,7 +348,7 @@ Options
 .. program:: baton-get
 .. option:: --unsafe
 
-  Permit relative paths, which are unsafe in iRODS 3.x - 4.1.x
+  Permit relative paths, which are unsafe in iRODS 3.x - 4.3.x
 
 .. program:: baton-get
 .. option:: --verbose
@@ -424,7 +424,7 @@ Options
 .. program:: baton-put
 .. option:: --unsafe
 
-  Permit relative paths, which are unsafe in iRODS 3.x - 4.1.x
+  Permit relative paths, which are unsafe in iRODS 3.x - 4.3.x
 
 .. program:: baton-put
 .. option:: --verbose
@@ -541,7 +541,7 @@ Options
 .. program:: baton-list
 .. option:: --unsafe
 
-  Permit relative paths, which are unsafe in iRODS 3.x - 4.1.x
+  Permit relative paths, which are unsafe in iRODS 3.x - 4.3.x
 
 .. program:: baton-list
 .. option:: --verbose
@@ -613,7 +613,7 @@ Options
 .. program:: baton-metamod
 .. option:: --unsafe
 
-  Permit relative paths, which are unsafe in iRODS 3.x - 4.1.x
+  Permit relative paths, which are unsafe in iRODS 3.x - 4.3.x
 
 .. program:: baton-metamod
 .. option:: --verbose
@@ -1114,15 +1114,15 @@ data objects were created and last modified. These are represented for
 both collections and data objects as a JSON array of objects under the
 ``timestamp`` property. Each timestamp within the array must have at
 least a ``created`` or a ``modified`` property. The values associated
-with these properties are `ISO8601 datetime strings
-<https://en.wikipedia.org/wiki/ISO_8601>`_. These properties have
+with these properties are `RFC3339 datetime strings
+<https://www.rfc-editor.org/rfc/rfc3339>`_. These properties have
 shorter synonyms ``c``, ``m``, respectively.
 
 .. code-block:: json
 
    {"collection": "/unit/home/user",
-    "timestamps": [{"created":  "2014-01-01T00:00:00"},
-                   {"modified": "2014-01-01T00:00:00"}]}
+    "timestamps": [{"created":  "2014-01-01T00:00:00Z"},
+                   {"modified": "2014-01-01T00:00:00Z"}]}
 
 Data objects may have replicates in iRODS. Where data object
 timestamps are reported by ``baton``, the values for all replicates are
@@ -1133,8 +1133,8 @@ integer.
 
    {"collection": "/unit/home/user",
     "data_object": "foo.txt",
-    "timestamps": [{"created":  "2014-01-01T00:00:00", "replicate": 0},
-                   {"modified": "2014-01-01T00:00:00", "replicate": 0}]}
+    "timestamps": [{"created":  "2014-01-01T00:00:00Z", "replicate": 0},
+                   {"modified": "2014-01-01T00:00:00Z", "replicate": 0}]}
 
 
 .. _representing_query_timestamps:
@@ -1162,16 +1162,16 @@ For example, to limit query results to anything created on or after
 
 .. code-block:: json
 
-   {"timestamps": [{"created": "2014-01-01T00:00:00", "operator": "n>="}]}
+   {"timestamps": [{"created": "2014-01-01T00:00:00Z", "operator": "n>="}]}
 
 To limit query results to anything created before 2014-01-01 and
 modified in 2014-03, the syntax would be:
 
 .. code-block:: json
 
-   {"timestamps": [{"created":  "2014-01-01T00:00:00", "operator": "n<"},
-                   {"modified": "2014-03-01T00:00:00", "operator": "n>="},
-                   {"modified": "2014-03-31T00:00:00", "operator": "n<"}]}
+   {"timestamps": [{"created":  "2014-01-01T00:00:00Z", "operator": "n<"},
+                   {"modified": "2014-03-01T00:00:00Z", "operator": "n>="},
+                   {"modified": "2014-03-31T00:00:00Z", "operator": "n<"}]}
 
 .. _representing_permissions:
 

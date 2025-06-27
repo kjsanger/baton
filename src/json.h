@@ -347,8 +347,11 @@ int add_result(json_t *object, json_t *result, baton_error_t *error);
 
 int add_error_report(json_t *target, baton_error_t *error);
 
-json_t *make_timestamp(const char* key, const char *value, const char *format,
-                       const char *replicate, baton_error_t *error);
+json_t *make_data_object_timestamp(const char* key, const char *value, const char *format,
+                                   const char *replicate, baton_error_t *error);
+
+json_t *make_collection_timestamp(const char* key, const char *value, const char *format,
+                                  baton_error_t *error);
 
 json_t *make_replicate(const char *resource, const char *location,
                        const char *checksum, const char *replicate,

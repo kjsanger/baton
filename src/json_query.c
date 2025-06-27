@@ -269,7 +269,7 @@ json_t *do_search(rcComm_t *conn, char *zone_name, const json_t *query,
         if (error->code != 0) goto error;
 
         if (str_starts_with(root_path, "/", MAX_STR_LEN)) {
-            // Is search path just a zone hint? e.g. "/seq"
+            // Is the search path just a zone hint? e.g. "/seq"
             if (is_zone_hint(root_path)) {
                 if (!zone_hint) {
                     zone_hint = root_path;
@@ -849,8 +849,9 @@ genQueryInp_t *prepare_json_tps_search(genQueryInp_t *query_in,
         if (!raw_timestamp) {
             set_baton_error(error, CAT_INVALID_ARGUMENT,
                             "Invalid timestamp at position %d of %d, "
-                            "could not be parsed: '%s'", i, num_clauses,
-                            raw_timestamp);
+                            "could not be parsed: '%s' (expected RFC3339 format "
+                            "i.e. '%Y-%m-%dT%H:%M:%SZ')",
+                            i, num_clauses, iso_timestamp);
             goto error;
         }
 
@@ -1016,35 +1017,40 @@ json_t *add_tps_json_object(rcComm_t *conn, json_t *object,
         goto error;
     }
 
-    // We report timestamps only on data objects. They exist on
-    // collections too, but we don't report them to be consistent with
-    // the 'ils' command.
-    if (represents_data_object(object)) {
-        size_t i;
-        json_t *item;
-        json_array_foreach(raw_timestamps, i, item) {
+    size_t i;
+    json_t *item;
+    json_array_foreach(raw_timestamps, i, item) {
+        const char *created = get_created_timestamp(item, error);
+        if (error->code != 0) goto error;
+        const char *modified = get_modified_timestamp(item, error);
+        if (error->code != 0) goto error;
+
+        if (represents_data_object(object)) {
             const char *repl_num = get_replicate_num(item, error);
             if (error->code != 0) goto error;
-            const char *created = get_created_timestamp(item, error);
-            if (error->code != 0) goto error;
-            const char *modified = get_modified_timestamp(item, error);
-            if (error->code != 0) goto error;
+            logmsg(DEBUG, "Adding timestamps from replicate %s of '%s'", repl_num, path);
 
-            json_t *iso_created =
-                make_timestamp(JSON_CREATED_KEY, created, RFC3339_FORMAT,
-                               repl_num, error);
+            json_t *cre = make_data_object_timestamp(JSON_CREATED_KEY, created,
+                                                     RFC3339_FORMAT, repl_num, error);
             if (error->code != 0) goto error;
 
-            json_t *iso_modified =
-                make_timestamp(JSON_MODIFIED_KEY, modified, RFC3339_FORMAT,
-                               repl_num, error);
+            json_t *mod = make_data_object_timestamp(JSON_MODIFIED_KEY, modified,
+                                                     RFC3339_FORMAT, repl_num, error);
+            if (error->code != 0) goto error;
+            json_array_append_new(timestamps, cre);
+            json_array_append_new(timestamps, mod);
+
+        } else if (represents_collection(object)) {
+            logmsg(DEBUG, "Adding timestamps from '%s'", path);
+            json_t *cre = make_collection_timestamp(JSON_CREATED_KEY, created,
+                                                    RFC3339_FORMAT, error);
             if (error->code != 0) goto error;
 
-            json_array_append_new(timestamps, iso_created);
-            json_array_append_new(timestamps, iso_modified);
-
-            logmsg(DEBUG, "Adding timestamps from replicate %s of '%s'",
-                   repl_num, path);
+            json_t *mod = make_collection_timestamp(JSON_MODIFIED_KEY, modified,
+                                                    RFC3339_FORMAT, error);
+            if (error->code != 0) goto error;
+            json_array_append_new(timestamps, cre);
+            json_array_append_new(timestamps, mod);
         }
     }
 
@@ -1080,7 +1086,7 @@ json_t *add_tps_json_array(rcComm_t *conn, json_t *array,
     size_t i;
     json_t *item;
     json_array_foreach(array, i, item) {
-        if (represents_data_object(item)) {
+        if (represents_data_object(item) || represents_collection(item)) {
             add_tps_json_object(conn, item, error);
             if (error->code != 0) goto error;
         }

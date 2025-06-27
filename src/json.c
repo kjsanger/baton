@@ -757,8 +757,8 @@ int represents_file(const json_t *object) {
             has_json_str_value(object, JSON_FILE_KEY, NULL));
 }
 
-json_t *make_timestamp(const char* key, const char *value, const char *format,
-                       const char *replicate, baton_error_t *error) {
+json_t *make_data_object_timestamp(const char* key, const char *value, const char *format,
+                                   const char *replicate, baton_error_t *error) {
     init_baton_error(error);
 
     char *formatted = format_timestamp(value, format);
@@ -795,6 +795,27 @@ json_t *make_timestamp(const char* key, const char *value, const char *format,
 
 error:
     if (formatted) free(formatted);
+
+    return NULL;
+}
+
+json_t *make_collection_timestamp(const char* key, const char *value,
+                                  const char *format, baton_error_t *error) {
+    init_baton_error(error);
+
+    char *formatted = format_timestamp(value, format);
+    json_t *result = json_pack("{s:s}", key, formatted);
+    if (!result) {
+        set_baton_error(error, -1,
+                        "Failed to pack timestamp '%s': '%s' as JSON",
+                        key, value);
+        goto error;
+    }
+
+    return result;
+
+    error:
+        if (formatted) free(formatted);
 
     return NULL;
 }
@@ -878,11 +899,11 @@ int add_timestamps(json_t *object, const char *created, const char *modified,
         goto error;
     }
 
-    iso_created = make_timestamp(JSON_CREATED_KEY, created,
+    iso_created = make_data_object_timestamp(JSON_CREATED_KEY, created,
                                  RFC3339_FORMAT, replicate, error);
     if (error->code != 0) goto error;
 
-    iso_modified = make_timestamp(JSON_MODIFIED_KEY, modified,
+    iso_modified = make_data_object_timestamp(JSON_MODIFIED_KEY, modified,
                                   RFC3339_FORMAT, replicate, error);
     if (error->code != 0) goto error;
 

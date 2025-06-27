@@ -1,5 +1,15 @@
 	[Upcoming]
 
+	[5.0.2]
+
+	Fix printing of collection timestamps.
+
+	[5.0.1]
+
+	Fix Docker image tag where 4.3.4 is mistakenly tagged as 4.3.3.
+
+	Fix initialisation of rodsPath_t.
+
 	[5.0.0]
 
 	Do not expand ACLs reported on collections.

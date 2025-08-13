@@ -31,6 +31,7 @@ static int acl_flag        = 0;
 static int avu_flag        = 0;
 static int debug_flag      = 0;
 static int help_flag       = 0;
+static int no_clobber_flag = 0;
 static int raw_flag        = 0;
 static int save_flag       = 0;
 static int silent_flag     = 0;
@@ -39,6 +40,7 @@ static int timestamp_flag  = 0;
 static int unbuffered_flag = 0;
 static int unsafe_flag     = 0;
 static int verbose_flag    = 0;
+static int verify_flag     = 0;
 static int version_flag    = 0;
 
 static size_t default_buffer_size = 1024 * 64 * 16 * 2;
@@ -58,6 +60,7 @@ int main(const int argc, char *argv[]) {
             {"acl",         no_argument, &acl_flag,        1},
             {"avu",         no_argument, &avu_flag,        1},
             {"debug",       no_argument, &debug_flag,      1},
+            { "no-clobber", no_argument, &no_clobber_flag, 1},
             {"help",        no_argument, &help_flag,       1},
             {"raw",         no_argument, &raw_flag,        1},
             {"save",        no_argument, &save_flag,       1},
@@ -67,6 +70,7 @@ int main(const int argc, char *argv[]) {
             {"unbuffered",  no_argument, &unbuffered_flag, 1},
             {"unsafe",      no_argument, &unsafe_flag,     1},
             {"verbose",     no_argument, &verbose_flag,    1},
+            {"verify",      no_argument, &verify_flag,     1},
             {"version",     no_argument, &version_flag,    1},
             // Indexed options
             {"buffer-size",  required_argument, NULL, 'b'},
@@ -117,14 +121,16 @@ int main(const int argc, char *argv[]) {
         }
     }
 
-    if (acl_flag)        flags = flags | PRINT_ACL;
-    if (avu_flag)        flags = flags | PRINT_AVU;
-    if (raw_flag)        flags = flags | PRINT_RAW;
-    if (save_flag)       flags = flags | SAVE_FILES;
-    if (size_flag)       flags = flags | PRINT_SIZE;
-    if (timestamp_flag)  flags = flags | PRINT_TIMESTAMP;
-    if (unbuffered_flag) flags = flags | FLUSH;
-    if (unsafe_flag)     flags = flags | UNSAFE_RESOLVE;
+    if (acl_flag)         flags = flags | PRINT_ACL;
+    if (avu_flag)         flags = flags | PRINT_AVU;
+    if (!no_clobber_flag) flags = flags | FORCE;
+    if (raw_flag)         flags = flags | PRINT_RAW;
+    if (save_flag)        flags = flags | SAVE_FILES;
+    if (size_flag)        flags = flags | PRINT_SIZE;
+    if (timestamp_flag)   flags = flags | PRINT_TIMESTAMP;
+    if (verify_flag)      flags = flags | VERIFY_CHECKSUM;
+    if (unbuffered_flag)  flags = flags | FLUSH;
+    if (unsafe_flag)      flags = flags | UNSAFE_RESOLVE;
 
     const char *help =
         "Name\n"
@@ -133,9 +139,9 @@ int main(const int argc, char *argv[]) {
         "Synopsis\n"
         "\n"
         "    baton-get [--acl] [--avu] [--file <JSON file>]\n"
-        "              [--connect-time <n>] [--raw] [--save]\n"
+        "              [--connect-time <n>] [--raw] [--save] [--no-clobber]\n"
         "              [--silent] [--size] [--timestamp] [--unbuffered]\n"
-        "              [--unsafe] [--verbose] [--version]\n"
+        "              [--unsafe] [--verbose] [--verify] [--version]\n"
         "\n"
         "Description\n"
         "    Gets the contents of data objects described in a JSON\n"
@@ -151,6 +157,8 @@ int main(const int argc, char *argv[]) {
         "                 10 minutes.\n"
         "  --file         The JSON file describing the data objects.\n"
         "                 Optional, defaults to STDIN.\n"
+        "  --no-clobber   When saving data objects to files, raise an error\n"
+        "                 rather than overwrite an existing local file.\n"
         "  --raw          Print data object content without any JSON\n"
         "                 wrapping.\n"
         "  --save         Save data object content to individual files,\n"
@@ -161,6 +169,8 @@ int main(const int argc, char *argv[]) {
         "  --unbuffered   Flush print operations for each JSON object.\n"
         "  --unsafe       Permit unsafe relative iRODS paths.\n"
         "  --verbose      Print verbose messages to STDERR.\n"
+        "  --verify       When saving data objects to files, verify the file\n"
+        "                 checksums after saving\n"
         "  --version      Print the version number and exit.\n";
 
     if (help_flag) {
@@ -210,8 +220,6 @@ int main(const int argc, char *argv[]) {
                    "%zu to %zu", buffer_size, tmp);
         }
     }
-
-    logmsg(DEBUG, "Using a transfer buffer size of %zu bytes", buffer_size);
 
     operation_args_t args = { .flags            = flags,
                               .buffer_size      = buffer_size,

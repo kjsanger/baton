@@ -36,22 +36,21 @@ int put_data_obj(rcComm_t *conn, const char *local_path, rodsPath_t *rods_path,
                  char *default_resource, char *checksum, const int flags,
                  baton_error_t *error) {
     char *tmpname  = NULL;
-    dataObjInp_t obj_open_in;
+    dataObjInp_t obj_open_in = {0};
     int status;
 
     init_baton_error(error);
-
-    memset(&obj_open_in, 0, sizeof obj_open_in);
 
     logmsg(DEBUG, "Opening data object '%s'", rods_path->outPath);
     snprintf(obj_open_in.objPath, MAX_NAME_LEN, "%s", rods_path->outPath);
 
     tmpname = copy_str(local_path, MAX_STR_LEN);
+    if (!tmpname) goto error;
 
     obj_open_in.openFlags  = O_WRONLY;
     obj_open_in.createMode = 0750;
 
-    // Set to 0 when we dont know the size. However, this means that
+    // Set to 0 when we don't know the size. However, this means that
     // rcDataObjPut will check for a local file on disk to get the
     // size.
     obj_open_in.dataSize   = 0;
@@ -64,36 +63,36 @@ int put_data_obj(rcComm_t *conn, const char *local_path, rodsPath_t *rods_path,
     }
 
     if (flags & VERIFY_CHECKSUM) {
-	char chksum[NAME_LEN];
+        char chksum[NAME_LEN];
 
-	if (checksum) {
-	    snprintf(chksum, NAME_LEN, "%s", checksum);
-	    logmsg(DEBUG, "Using supplied local checksum '%s' for '%s'",
-		   chksum, rods_path->outPath);
-	}
-	else {
-	    // The hash scheme must be defined for rcChksumLocFile, but if
-	    // it is zero length, rcChksumLocFile falls back to the value
-	    // in the client environment. There's no advantage in our
-	    // passing in a value that we have read from the client
-	    // environment.
-	    const char* default_scheme = "";
-	    status = chksumLocFile(tmpname, chksum, default_scheme);
-	    if (status != 0) {
-		char *err_subname;
-		const char *err_name = rodsErrorName(status, &err_subname);
-		set_baton_error(error, status,
-				"Failed to calculate a local checksum for: '%s' "
-				"error %d %s", rods_path->outPath, status,
-				err_name);
-		goto error;
+	    if (checksum) {
+	        snprintf(chksum, NAME_LEN, "%s", checksum);
+	        logmsg(DEBUG, "Using supplied local checksum '%s' for '%s'",
+		       chksum, rods_path->outPath);
 	    }
-	    logmsg(DEBUG, "Calculated a local checksum '%s' for '%s'",
-		   chksum, rods_path->outPath);
-	}
+	    else {
+	        // The hash scheme must be defined for rcChksumLocFile, but if
+	        // it is zero length, rcChksumLocFile falls back to the value
+	        // in the client environment. There's no advantage in our
+	        // passing in a value that we have read from the client
+	        // environment.
+	        const char* default_scheme = "";
+	        status = chksumLocFile(tmpname, chksum, default_scheme);
+	        if (status != 0) {
+		        char *err_subname;
+		        const char *err_name = rodsErrorName(status, &err_subname);
+		        set_baton_error(error, status,
+				        "Failed to calculate a local checksum for: '%s' "
+				        "error %d %s", rods_path->outPath, status,
+				        err_name);
+		        goto error;
+	        }
+	        logmsg(DEBUG, "Calculated a local checksum '%s' for '%s'",
+                   chksum, rods_path->outPath);
+        }
 	
         logmsg(DEBUG, "Server will verify '%s' after put",
-	       rods_path->outPath);
+               rods_path->outPath);
         addKeyVal(&obj_open_in.condInput, VERIFY_CHKSUM_KW, chksum);
     }
     else if (flags & CALCULATE_CHECKSUM) {
@@ -103,8 +102,8 @@ int put_data_obj(rcComm_t *conn, const char *local_path, rodsPath_t *rods_path,
     }
 
     if (flags & WRITE_LOCK) {
-      logmsg(DEBUG, "Enabling put write lock for '%s'", rods_path->outPath);
-      addKeyVal(&obj_open_in.condInput, LOCK_TYPE_KW, WRITE_LOCK_TYPE);
+        logmsg(DEBUG, "Enabling put write lock for '%s'", rods_path->outPath);
+        addKeyVal(&obj_open_in.condInput, LOCK_TYPE_KW, WRITE_LOCK_TYPE);
     }
     if (default_resource) {
         logmsg(DEBUG, "Using '%s' as the default iRODS resource",
@@ -112,8 +111,7 @@ int put_data_obj(rcComm_t *conn, const char *local_path, rodsPath_t *rods_path,
         addKeyVal(&obj_open_in.condInput, DEF_RESC_NAME_KW, default_resource);
     }
 
-    // Always force put over any existing data in order to make puts
-    // idempotent.
+    // Always force put over any existing data to make puts idempotent.
     addKeyVal(&obj_open_in.condInput, FORCE_FLAG_KW, "");
 
     status = rcDataObjPut(conn, &obj_open_in, tmpname);

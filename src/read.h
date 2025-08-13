@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2014, 2015, 2016, 2017, 2018, 2021 Genome Research
+ * Copyright (C) 2014, 2015, 2016, 2017, 2018, 2021, 2025 Genome Research
  * Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -116,9 +116,8 @@ json_t *ingest_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
                         option_flags flags,
                         size_t buffer_size, baton_error_t *error);
 
-int get_data_obj_file(rcComm_t *conn, rodsPath_t *rods_path,
-                      const char *local_path, size_t buffer_size,
-                      baton_error_t *error);
+int get_data_obj_file(rcComm_t *conn, rodsPath_t *rods_path, const char *local_path,
+                      option_flags flags, baton_error_t *error);
 
 int get_data_obj_stream(rcComm_t *conn, rodsPath_t *rods_path, FILE *out,
                         size_t buffer_size, baton_error_t *error);

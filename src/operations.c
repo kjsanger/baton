@@ -558,7 +558,6 @@ json_t *baton_json_get_op(rodsEnv *env, rcComm_t *conn, json_t *target,
     if (error->code != 0) goto finally;
 
     const size_t bsize = args->buffer_size;
-    logmsg(DEBUG, "Using a 'get' buffer size of %zu bytes", bsize);
 
     if (args->flags & SAVE_FILES) {
         result = json_deep_copy(target);
@@ -567,7 +566,7 @@ json_t *baton_json_get_op(rodsEnv *env, rcComm_t *conn, json_t *target,
                             "Failed to allocate memory for result");
             goto finally;
         }
-        get_data_obj_file(conn, &rods_path, file, bsize, error);
+        get_data_obj_file(conn, &rods_path, file, args->flags, error);
         if (error->code != 0) goto finally;
     }
     else if (args->flags & PRINT_RAW) {

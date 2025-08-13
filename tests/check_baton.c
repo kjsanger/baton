@@ -895,11 +895,11 @@ START_TEST(test_list_replicates_obj) {
     char *checksum = "d41d8cd98f00b204e9800998ecf8427e";
     json_t *expected =
       json_pack("[{s:s, s:i, s:b}, {s:s, s:i, s:b}]",
-                // Assume original copy is replicate 0 on default resource
+                // Assume the original copy is replicate 0 on the default resource
                 JSON_CHECKSUM_KEY,         checksum,
                 JSON_REPLICATE_NUMBER_KEY, 0,
                 JSON_REPLICATE_STATUS_KEY, 1,
-                // Assume replicated copy is replicate 1 on test resource
+                // Assume the replicated copy is replicate 1 on the test resource
                 JSON_CHECKSUM_KEY,         checksum,
                 JSON_REPLICATE_NUMBER_KEY, 1,
                 JSON_REPLICATE_STATUS_KEY, 1);
@@ -1205,7 +1205,7 @@ START_TEST(test_search_metadata_perm_obj) {
 }
 END_TEST
 
-// Can we search for data objects, limited by creation timestamp?
+// Can we search for data objects, limited by the creation timestamp?
 START_TEST(test_search_metadata_tps_obj) {
     option_flags flags = 0;
     rodsEnv env;
@@ -2002,14 +2002,15 @@ START_TEST(test_get_data_obj_file) {
     ck_assert_int_eq(resolve_rods_path(conn, &env, &rods_obj_path, obj_path,
                                        flags, &resolve_error), EXIST_ST);
 
-    // Write data object to temp file
+    // Write a data object to a temp file
     char template[] = "baton_test_get_data_obj_file.XXXXXX";
     const int fd = mkstemp(template);
 
-    const size_t buffer_size = 1024;
     baton_error_t error;
     int status = get_data_obj_file(conn, &rods_obj_path, template,
-                                   buffer_size, &error);
+                                   flags | FORCE,
+                                   &error);
+    ck_assert_int_eq(status, 0);
     ck_assert_int_eq(error.code, 0);
     close(fd);
 
@@ -2052,8 +2053,8 @@ START_TEST(test_write_data_obj) {
         baton_error_t write_error;
         FILE *in = fopen(file_path, "r");
         size_t num_written = write_data_obj(conn, in, &rods_obj_path,
-                                            buffer_sizes[i], flags,
-                                            &write_error);
+                                            buffer_sizes[i],
+                                            flags, &write_error);
         ck_assert_int_eq(write_error.code, 0);
         ck_assert_int_eq(num_written, 10240);
         ck_assert_int_eq(fclose(in), 0);
@@ -2074,14 +2075,14 @@ START_TEST(test_write_data_obj) {
                          "4efe0c1befd6f6ac4621cbdb13241246");
         json_decref(result);
 
-        // Get the data object to temp file
+        // Get the data object to a temp file
         char template[] = "baton_test_write_data_obj.XXXXXX";
         int fd = mkstemp(template);
 
-        size_t buffer_size = 1024;
         baton_error_t get_error;
         int get_status = get_data_obj_file(conn, &result_obj_path, template,
-                                           buffer_size, &get_error);
+                                           flags | FORCE,
+                                           &get_error);
         ck_assert_int_eq(get_error.code, 0);
         ck_assert_int_eq(get_status, 0);
         close(fd);
@@ -2133,22 +2134,21 @@ START_TEST(test_put_data_obj) {
     ck_assert_int_eq(result_error.code, 0);
 
     baton_error_t list_error;
-    json_t *result = list_path(conn, &result_obj_path, PRINT_CHECKSUM,
-                               &list_error);
+    json_t *result = list_path(conn, &result_obj_path, PRINT_CHECKSUM, &list_error);
     ck_assert_int_eq(list_error.code, 0);
     json_t *checksum = json_object_get(result, JSON_CHECKSUM_KEY);
     ck_assert(json_is_string(checksum));
     ck_assert_str_eq(json_string_value(checksum), md5);
     json_decref(result);
 
-    // Get the data object to temp file
+    // Get the data object to a temp file
     char template[] = "baton_test_put_data_obj.XXXXXX";
     int fd = mkstemp(template);
 
-    size_t buffer_size = 1024;
     baton_error_t get_error;
     int get_status = get_data_obj_file(conn, &result_obj_path, template,
-                                       buffer_size, &get_error);
+                                       flags | FORCE,
+                                       &get_error);
     ck_assert_int_eq(get_error.code, 0);
     ck_assert_int_eq(get_status, 0);
     close(fd);
@@ -2211,7 +2211,8 @@ START_TEST(test_checksum_data_obj) {
 
     baton_error_t put_error;
     int put_status = put_data_obj(conn, file_path, &rods_obj_path,
-                                  TEST_RESOURCE, NULL, flags, &put_error);
+                                  TEST_RESOURCE, NULL,
+                                  flags, &put_error);
     ck_assert_int_eq(put_error.code, 0);
     ck_assert_int_eq(put_status, 0);
 
@@ -2252,7 +2253,7 @@ START_TEST(test_checksum_data_obj) {
 }
 END_TEST
 
-// Can we checksum an object, ignoring stale replicas
+// Can we checksum an object, ignoring stale replicas?
 START_TEST(test_checksum_ignore_stale) {
     const option_flags flags = 0;
     rodsEnv env;
@@ -2298,7 +2299,7 @@ START_TEST(test_checksum_ignore_stale) {
 }
 END_TEST
 
-// Can we remove a data object
+// Can we remove a data object?
 START_TEST(test_remove_data_obj) {
     const option_flags flags = 0;
     rodsEnv env;
@@ -2498,7 +2499,7 @@ START_TEST(test_irods_get_sql_for_specific_alias_with_alias) {
     }
     rodsEnv env;
     rcComm_t *conn = rods_login(&env);
-    // This is an alias that is inside the specific query table
+    // This is an alias inside the specific query table
     const char *valid_alias = "dataModifiedIdOnly";
     const char *sql = irods_get_sql_for_specific_alias(conn, valid_alias);
 
@@ -2511,7 +2512,7 @@ START_TEST(test_irods_get_sql_for_specific_alias_with_alias) {
 END_TEST
 
 // Tests that when the SQL associated to a non-existent alias is
-// requested using the `irods_get_sql_for_specific_alias` method, null
+// requested using the `irods_get_sql_for_specific_alias` method, a null
 // pointer is returned.
 START_TEST(test_irods_get_sql_for_specific_alias_with_non_existent_alias) {
     rodsEnv env;
@@ -2703,7 +2704,6 @@ START_TEST(test_regression_github_issue137) {
                           "n>", "n<", ">=", "<=", "n>=", "n<=" };
 
     int num_failed = 0;
-    int err_code = 0;
     for (size_t i = 0; i < 11; i++) {
         json_t *avu = json_pack("{s:s, s:s, s:s}",
                                 JSON_ATTRIBUTE_KEY, "numattr1",
@@ -2756,7 +2756,7 @@ START_TEST(test_regression_github_issue140) {
     char obj_path_out[MAX_PATH_LEN];
     snprintf(obj_path_out, MAX_PATH_LEN, "%s/f1.txt.no_checksum", rods_root);
 
-    // A Plain `icp' will create a copy having no checksum
+    // A Plain `icp` will create a copy having no checksum
     char command[MAX_COMMAND_LEN];
     snprintf(command, MAX_COMMAND_LEN, "icp %s %s", obj_path_in, obj_path_out);
 
@@ -2808,7 +2808,7 @@ START_TEST(test_regression_github_issue242) {
     char obj_path_out[MAX_PATH_LEN];
     snprintf(obj_path_out, MAX_PATH_LEN, "%s/f1.txt.no_checksum", rods_root);
 
-    // A Plain `icp' will create a copy having no checksum
+    // A Plain `icp` will create a copy having no checksum
     char command[MAX_COMMAND_LEN];
     snprintf(command, MAX_COMMAND_LEN, "icp %s %s", obj_path_in, obj_path_out);
 

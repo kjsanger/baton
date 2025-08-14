@@ -25,12 +25,7 @@
 
 #include <rodsClient.h>
 
-#include "config.h"
 #include "json_query.h"
-#include "list.h"
-#include "log.h"
-#include "read.h"
-#include "write.h"
 
 #define MAX_VERSION_STR_LEN 512
 
@@ -42,6 +37,73 @@
 #define META_REM_NAME "rm"
 
 #define FILE_SIZE_UNITS "KB"
+
+
+/**
+ *  @enum metadata_op
+ *  @brief AVU metadata operations.
+ */
+typedef enum {
+    /** Add an AVU. */
+    META_ADD,
+    /** Remove an AVU. */
+    META_REM
+} metadata_op;
+
+typedef enum {
+    /** Non-recursive operation */
+    NO_RECURSE,
+    /** Recursive operation */
+    RECURSE
+} recursive_op;
+
+typedef enum {
+    /** Print AVUs on collections and data objects */
+    PRINT_AVU          = 1 << 0,
+    /** Print ACLs on collections and data objects */
+    PRINT_ACL          = 1 << 1,
+    /** Print the contents of collections */
+    PRINT_CONTENTS     = 1 << 2,
+    /** Print timestamps on collections and data objects */
+    PRINT_TIMESTAMP    = 1 << 3,
+    /** Print file sizes for data objects */
+    PRINT_SIZE         = 1 << 4,
+    /** Pretty-print JSON */
+    PRINT_PRETTY       = 1 << 5,
+    /** Print raw output */
+    PRINT_RAW          = 1 << 6,
+    /** Search collection AVUs */
+    SEARCH_COLLECTIONS = 1 << 7,
+    /** Search data object AVUs */
+    SEARCH_OBJECTS     = 1 << 8,
+    /** Unsafely resolve relative paths */
+    UNSAFE_RESOLVE     = 1 << 9,
+    /** Print replicate details for data objects */
+    PRINT_REPLICATE    = 1 << 10,
+    /** Print checksums for data objects */
+    PRINT_CHECKSUM     = 1 << 11,
+    /** Calculate checksums for data objects */
+    CALCULATE_CHECKSUM = 1 << 12,
+    /** Verify checksums for data objects */
+    VERIFY_CHECKSUM    = 1 << 13,
+    /** Add an AVU */
+    ADD_AVU            = 1 << 14,
+    /** Remove an AVU */
+    REMOVE_AVU         = 1 << 15,
+    /** Recursive operation on collections */
+    RECURSIVE          = 1 << 16,
+    /** Save files */
+    SAVE_FILES         = 1 << 17,
+    /** Flush output */
+    FLUSH              = 1 << 18,
+    /** Force an operation */
+    FORCE              = 1 << 19,
+    /** Avoid any operations that contact servers other than rodshost */
+    SINGLE_SERVER      = 1 << 20,
+    /** Use advisory write lock on server */
+    WRITE_LOCK         = 1 << 21
+} option_flags;
+
 
 /**
  *  @struct metadata_op
@@ -62,17 +124,41 @@ typedef struct mod_metadata_in {
     char *attr_units;
 } mod_metadata_in_t;
 
+/**
+ * @struct baton_session
+ * @brief The baton session for communicating with iRODS.
+ */
 typedef struct baton_session {
+    char* redirect_host;
+    long max_connect_time;
+    int reconnect_flag;
     rodsEnv *env;
-    rcComm_t *connection;
+    rcComm_t *conn;
 } baton_session_t;
+
+
+/**
+ * Allocates a new baton session.
+ *
+ * @return A pointer to a newly created baton session structure.
+ *         Returns NULL if the session could not be created.
+ */
+baton_session_t *new_baton_session(void);
+
+/**
+ * Frees the memory allocated for a baton session.
+ *
+ * @param session A pointer to the baton_session_t session to be freed.
+ *                If the pointer is null, the function does nothing.
+ */
+void free_baton_session(baton_session_t *session);
 
 /**
  * Test that a connection can be made to the server.
  *
  * @return 1 on success, 0 on failure.
  */
-int is_irods_available();
+int is_irods_available(void);
 
 /**
  * Set the SP_OPTION environment variable so that the 'ips' command
@@ -85,21 +171,12 @@ int is_irods_available();
 int declare_client_name(const char *name);
 
 /**
- * Log into iRODS using an pre-defined environment.
- *
- * @param[in] env A populated iRODS environment.
- *
- * @return An open connection to the iRODS server or NULL on error.
- */
-rcComm_t *rods_login(rodsEnv *env);
-
-/**
  * Return a newly allocated "dotted-triple" iRODS version string of
  * the client. The caller is responsible for freeing the string.
  *
  * @return A version string.
  */
-char* get_client_version();
+char* get_client_version(void);
 
 /**
  * Return a newly allocated "dotted-triple" iRODS version string of the
@@ -111,6 +188,10 @@ char* get_client_version();
  * @return A version string.
  */
 char* get_server_version(rcComm_t *conn, baton_error_t *error);
+
+int baton_connect(baton_session_t *session);
+
+void baton_disconnect(baton_session_t *session);
 
 /**
  * Initialise an iRODS path by copying a string into its inPath.
@@ -126,8 +207,7 @@ int init_rods_path(rodsPath_t *rods_path, const char *in_path);
  * Initialise and resolve an iRODS path by copying a string into its
  * inPath, parsing it and resolving it on the server.
  *
- * @param[in]  conn         An open iRODS connection.
- * @param[in]  env          A populated iRODS environment.
+ * @param[in]  session      An open baton session.
  * @param[out] rods_path    An iRODS path.
  * @param[in]  in_path      A string representing an unresolved iRODS path.
  * @param[in]  flags        Function behaviour options.
@@ -135,7 +215,7 @@ int init_rods_path(rodsPath_t *rods_path, const char *in_path);
  *
  * @return 0 on success, iRODS error code on failure.
  */
-int resolve_rods_path(rcComm_t *conn, rodsEnv *env,
+int resolve_rods_path(baton_session_t *session,
                       rodsPath_t *rods_path, const char *in_path, option_flags flags,
                       baton_error_t *error);
 
@@ -144,8 +224,7 @@ int resolve_rods_path(rcComm_t *conn, rodsEnv *env,
  * inPath and outPath and then resolving it on the server. The path is not
  * parsed, so must be derived from an existing parsed path.
  *
- * @param[in]  conn      An open iRODS connection.
- * @param[out] rods_path An iRODS path.
+ * @param[in]  session      An open baton session.
  * @param[in]  path      A string representing an unresolved iRODS path.
  * @param[out] error     An error report struct.
  *
@@ -157,7 +236,7 @@ int set_rods_path(rcComm_t *conn, rodsPath_t *rods_path, char *path,
 int move_rods_path(rcComm_t *conn, rodsPath_t *rods_path, char *new_path,
                    baton_error_t *error);
 
-int resolve_collection(json_t *object, rcComm_t *conn, rodsEnv *env,
+int resolve_collection(baton_session_t *session, json_t *object,
                        option_flags flags, baton_error_t *error);
 
 /**

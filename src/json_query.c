@@ -28,6 +28,7 @@
 #include "baton.h"
 #include "json.h"
 #include "json_query.h"
+#include "list.h"
 #include "log.h"
 #include "query.h"
 #include "utilities.h"
@@ -85,26 +86,25 @@ static const char *map_access_level(const char *access_level,
                                ACCESS_LEVEL_NULL, MAX_STR_LEN)) {
         return ACCESS_NULL;
     }
-    else if (str_equals_ignore_case(access_level,
-                                    ACCESS_LEVEL_OWN, MAX_STR_LEN)) {
+    if (str_equals_ignore_case(access_level,
+                               ACCESS_LEVEL_OWN, MAX_STR_LEN)) {
         return ACCESS_OWN;
     }
-    else if (str_equals_ignore_case(access_level,
-                                    ACCESS_LEVEL_READ, MAX_STR_LEN)) {
+    if (str_equals_ignore_case(access_level,
+                               ACCESS_LEVEL_READ, MAX_STR_LEN)) {
         return ACCESS_READ_OBJECT;
     }
-    else if (str_equals_ignore_case(access_level,
-                                    ACCESS_LEVEL_WRITE, MAX_STR_LEN)) {
+    if (str_equals_ignore_case(access_level,
+                               ACCESS_LEVEL_WRITE, MAX_STR_LEN)) {
         return ACCESS_MODIFY_OBJECT;
     }
-    else {
-        set_baton_error(error, CAT_INVALID_ARGUMENT,
-                        "Invalid permission level: expected one of "
-                        "[%s, %s, %s, %s]",
-                        ACCESS_LEVEL_NULL, ACCESS_LEVEL_OWN,
-                        ACCESS_LEVEL_READ, ACCESS_LEVEL_WRITE);
-        return NULL;
-    }
+
+    set_baton_error(error, CAT_INVALID_ARGUMENT,
+                    "Invalid permission level: expected one of "
+                    "[%s, %s, %s, %s]",
+                    ACCESS_LEVEL_NULL, ACCESS_LEVEL_OWN,
+                    ACCESS_LEVEL_READ, ACCESS_LEVEL_WRITE);
+    return NULL;
 }
 
 // Map an iCAT token back to a user-visible access level.
@@ -113,23 +113,21 @@ static const char *revmap_access_level(const char *icat_level) {
                                ACCESS_NULL, MAX_STR_LEN)) {
         return ACCESS_LEVEL_NULL;
     }
-    else if (str_equals_ignore_case(icat_level,
-                                    ACCESS_OWN, MAX_STR_LEN)) {
+    if (str_equals_ignore_case(icat_level,
+                               ACCESS_OWN, MAX_STR_LEN)) {
         return ACCESS_LEVEL_OWN;
     }
-    else if (str_equals_ignore_case(icat_level,
-                                    ACCESS_READ_OBJECT, MAX_STR_LEN)) {
+    if (str_equals_ignore_case(icat_level,
+                               ACCESS_READ_OBJECT, MAX_STR_LEN)) {
         return ACCESS_LEVEL_READ;
     }
-    else if (str_equals_ignore_case(icat_level,
-                                    ACCESS_MODIFY_OBJECT, MAX_STR_LEN)) {
+    if (str_equals_ignore_case(icat_level,
+                               ACCESS_MODIFY_OBJECT, MAX_STR_LEN)) {
         return ACCESS_LEVEL_WRITE;
     }
-    else {
-        // Fall back for anything else; not ideal, but it's more
-        // resilient to surprises than raising an error.
-        return icat_level;
-    }
+    // Fall back for anything else; not ideal, but it's more
+    // resilient to surprises than raising an error.
+    return icat_level;
 }
 
 #if IRODS_VERSION_INTEGER && IRODS_VERSION_INTEGER >= 4001008

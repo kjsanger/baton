@@ -22,8 +22,6 @@
 #ifndef _BATON_LOG_H
 #define _BATON_LOG_H
 
-#include <stdarg.h>
-
 /**
  *  @enum log_level
  *  @brief Log message levels.

@@ -31,6 +31,7 @@ int chksumLocFile( const char *fileName, char *chksumStr, const char* );
 #include "config.h"
 #include "compat_checksum.h"
 #include "write.h"
+#include "utilities.h"
 
 int put_data_obj(rcComm_t *conn, const char *local_path, rodsPath_t *rods_path,
                  char *default_resource, char *checksum, const int flags,
@@ -278,14 +279,16 @@ int create_collection(rcComm_t *conn, rodsPath_t *rods_path, const int flags,
 
 int remove_data_object(rcComm_t *conn, rodsPath_t *rods_path, const int flags,
                        baton_error_t *error) {
-    int dummy = flags; dummy++;
-
     init_baton_error(error);
     dataObjInp_t obj_rm_in = {0};
 
     logmsg(DEBUG, "Removing data object '%s'", rods_path->outPath);
     snprintf(obj_rm_in.objPath, MAX_NAME_LEN, "%s", rods_path->outPath);
 
+    if (flags & FORCE) {
+        logmsg(WARN, "Forced removal of '%s' is the default; ignoring redundant force request",
+               rods_path->outPath);
+    }
     addKeyVal(&obj_rm_in.condInput, FORCE_FLAG_KW, "");
 
     const int status = rcDataObjUnlink(conn, &obj_rm_in);

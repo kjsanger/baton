@@ -26,12 +26,9 @@
 
 #include <rodsClient.h>
 
-#include "config.h"
+#include "baton.h"
 #include "error.h"
-#include "json.h"
-#include "json_query.h"
-#include "operations.h"
-#include "query.h"
+
 
 json_t *list_checksum(rcComm_t *conn, rodsPath_t *rods_path,
                       baton_error_t *error);

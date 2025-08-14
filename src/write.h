@@ -24,7 +24,6 @@
 
 #include <rodsClient.h>
 
-#include "config.h"
 #include "read.h"
 
 /**

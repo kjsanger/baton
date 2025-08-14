@@ -24,6 +24,8 @@
 
 #include <stdio.h>
 
+#include "error.h"
+
 #define MAX_STR_LEN (1024 * 1024 * 1024)
 
 #define ISO8601_FORMAT "%Y-%m-%dT%H:%M:%S"
@@ -39,6 +41,13 @@ int str_equals_ignore_case(const char *str1, const char *str2,
                            size_t max_len);
 
 char *copy_str(const char *str, size_t max_len);
+
+
+int check_str_arg(const char *arg_name, const char *arg_value,
+                  size_t arg_size, baton_error_t *error);
+
+int check_str_arg_permit_empty(const char *arg_name, const char *arg_value,
+                  size_t arg_size, baton_error_t *error);
 
 const char *parse_base_name(const char *path);
 

@@ -25,7 +25,6 @@
 
 #include <jansson.h>
 
-#include "config.h"
 #include "error.h"
 
 // Error reporting

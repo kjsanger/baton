@@ -25,10 +25,10 @@
 
 #include <jansson.h>
 
-#include "config.h"
+#include <rodsClient.h>
+
 #include "error.h"
 #include "query.h"
-#include "utilities.h"
 
 /**
  * Log the current JSON error state through the underlying logging

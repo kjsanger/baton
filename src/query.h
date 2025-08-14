@@ -26,9 +26,7 @@
 #include <jansson.h>
 #include <rodsClient.h>
 
-#include "config.h"
 #include "log.h"
-#include "utilities.h"
 
 #define MAX_NUM_COLUMNS     128
 #define MAX_NUM_CONDITIONS   32

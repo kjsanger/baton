@@ -32,7 +32,9 @@
 
 #include "config.h"
 #include "baton.h"
+#include "json.h"
 #include "signal_handler.h"
+#include "utilities.h"
 
 static const char *metadata_op_name(const metadata_op op) {
     const char *name;
@@ -66,49 +68,51 @@ static void map_mod_args(modAVUMetadataInp_t *out, const mod_metadata_in_t *in) 
     out->arg9 = "";
 }
 
-static rcComm_t *rods_connect(const rodsEnv *env){
-    rcComm_t *conn = NULL;
-    rErrMsg_t errmsg;
 
-    // TODO: add option for NO_RECONN vs. RECONN_TIMEOUT
-    conn = rcConnect(env->rodsHost, env->rodsPort, env->rodsUserName,
-                     env->rodsZone, NO_RECONN, &errmsg);
 
-    if (!conn) goto finally;
-
-    const int sigstatus = apply_signal_handler();
-    if (sigstatus != 0) {
-        exit(1);
+baton_session_t *new_baton_session(void) {
+    baton_session_t *session = calloc(1, sizeof(baton_session_t));
+    if (!session) {
+        return NULL;
     }
+    session->max_connect_time = 60 * 10; // 10 minutes
+    session->reconnect_flag = NO_RECONN;
+    rodsEnv *env = calloc(1, sizeof(rodsEnv));
+    session->env = env;
 
-finally:
-    return conn;
+    return session;
 }
 
-int is_irods_available() {
-    rcComm_t *conn = NULL;
-    rodsEnv env;
+void free_baton_session(baton_session_t *session) {
+    if (session) {
+        if (session->env) {
+            free(session->env);
+        }
+        free(session);
+    }
+}
 
-    const int status = getRodsEnv(&env);
+int is_irods_available(void) {
+    baton_session_t *session = new_baton_session();
+
+    int status = getRodsEnv(session->env);
     if (status < 0) {
         logmsg(ERROR, "Failed to load your iRODS environment");
         goto error;
     }
 
-    conn = rods_connect(&env);
-
-    int available;
-    if (conn) {
-        available = 1;
-        rcDisconnect(conn);
-    }
-    else {
-        available = 0;
+    status = baton_connect(session);
+    if (status == 0) {
+        baton_disconnect(session);
     }
 
-    return available;
+    free_baton_session(session);
+
+    return 1;
 
 error:
+    free_baton_session(session);
+
     return status;
 }
 
@@ -122,7 +126,7 @@ int declare_client_name(const char *name) {
     return setenv(SP_OPTION, client_name, 1);
 }
 
-char* get_client_version() {
+char* get_client_version(void) {
     const int ver [3] = { IRODS_VERSION_MAJOR,
                           IRODS_VERSION_MINOR,
                           IRODS_VERSION_PATCHLEVEL };
@@ -200,20 +204,30 @@ error:
     return NULL;
 }
 
-rcComm_t *rods_login(rodsEnv *env) {
-    rcComm_t *conn = NULL;
+int baton_connect(baton_session_t *session) {
+    int status = 0;
+    rErrMsg_t errmsg;
 
-    int status = getRodsEnv(env);
+    status = getRodsEnv(session->env);
     if (status < 0) {
         logmsg(ERROR, "Failed to load your iRODS environment: %d", status);
         goto error;
     }
 
-    conn = rods_connect(env);
-    if (!conn) {
+    // TODO: add option for NO_RECONN vs. RECONN_TIMEOUT
+    rodsEnv *env = session->env;
+    session->conn = rcConnect(env->rodsHost, env->rodsPort, env->rodsUserName,
+                              env->rodsZone, session->reconnect_flag, &errmsg);
+    if (!session->conn) {
         logmsg(ERROR, "Failed to connect to %s:%d zone '%s' as '%s'",
                env->rodsHost, env->rodsPort, env->rodsZone, env->rodsUserName);
+        status = -1;
         goto error;
+    }
+
+    const int sigstatus = apply_signal_handler();
+    if (sigstatus != 0) {
+        exit(1);
     }
 
 #if IRODS_VERSION_INTEGER && IRODS_VERSION_INTEGER < (4*1000000 + 2*1000 + 8)
@@ -222,25 +236,31 @@ rcComm_t *rods_login(rodsEnv *env) {
     load_client_api_plugins();
 #endif
 
-    status = clientLogin(conn, 0, "");
-
+    status = clientLogin(session->conn, 0, "");
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);
-        for (int i = 0; i < conn->rError->len; i++) {
-            char *msg = conn->rError->errMsg[0]->msg;
+        for (int i = 0; i < session->conn->rError->len; i++) {
+            char *msg = session->conn->rError->errMsg[0]->msg;
             logmsg(ERROR, "Failed to log in to iRODS: %d %s: %s", status, err_name, msg);
         }
 
         goto error;
     }
 
-    return conn;
+    return status;
 
 error:
-    if (conn) rcDisconnect(conn);
+    baton_disconnect(session);
 
-    return NULL;
+    return status;
+}
+
+void baton_disconnect(baton_session_t *session) {
+    if (session->conn) {
+        rcDisconnect(session->conn);
+        session->conn = NULL;
+    }
 }
 
 int init_rods_path(rodsPath_t *rods_path, const char *in_path) {
@@ -256,7 +276,7 @@ int init_rods_path(rodsPath_t *rods_path, const char *in_path) {
     return 0;
 }
 
-int resolve_rods_path(rcComm_t *conn, rodsEnv *env, rodsPath_t *rods_path,
+int resolve_rods_path(baton_session_t *session, rodsPath_t *rods_path,
                       const char *in_path, const option_flags flags, baton_error_t *error) {
     init_baton_error(error);
 
@@ -282,14 +302,14 @@ int resolve_rods_path(rcComm_t *conn, rodsEnv *env, rodsPath_t *rods_path,
         goto error;
     }
 
-    status = parseRodsPath(rods_path, env);
+    status = parseRodsPath(rods_path, session->env);
     if (status < 0) {
         set_baton_error(error, status, "Failed to parse path '%s'",
                         rods_path->inPath);
         goto error;
     }
 
-    status = getRodsObjType(conn, rods_path);
+    status = getRodsObjType(session->conn, rods_path);
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);
@@ -409,7 +429,7 @@ finally:
     return error->code;
 }
 
-int resolve_collection(json_t *object, rcComm_t *conn, rodsEnv *env,
+int resolve_collection(baton_session_t *session, json_t *object,
                        const option_flags flags, baton_error_t *error) {
     char *collection = NULL;
 
@@ -435,7 +455,7 @@ int resolve_collection(json_t *object, rcComm_t *conn, rodsEnv *env,
     collection = json_to_collection_path(object, error);
     if (error->code != 0) goto finally;
 
-    resolve_rods_path(conn, env, &rods_path, collection, flags, error);
+    resolve_rods_path(session, &rods_path, collection, flags, error);
     if (error->code != 0) goto finally;
 
     logmsg(DEBUG, "Resolved collection '%s' to '%s'", unresolved,

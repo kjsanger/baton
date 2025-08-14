@@ -26,6 +26,8 @@
 
 #include "config.h"
 #include "baton.h"
+#include "json.h"
+#include "utilities.h"
 
 static int debug_flag      = 0;
 static int help_flag       = 0;
@@ -132,9 +134,9 @@ int do_search_specific(FILE *input, char *zone_name) {
     int item_count  = 0;
     int error_count = 0;
 
-    rodsEnv env;
-    rcComm_t *conn = rods_login(&env);
-    if (!conn) goto error;
+    baton_session_t *session = new_baton_session();
+    int status = baton_connect(session);
+    if (status != 0) goto error;
 
     while (!feof(input)) {
         const size_t jflags = JSON_DISABLE_EOF_CHECK | JSON_REJECT_DUPLICATES;
@@ -161,7 +163,7 @@ int do_search_specific(FILE *input, char *zone_name) {
         json_t *results = NULL;
 
         baton_error_t search_error;
-        results = search_specific(conn, target, zone_name, &search_error);
+        results = search_specific(session->conn, target, zone_name, &search_error);
         if (search_error.code != 0) {
             error_count++;
             add_error_value(target, &search_error);
@@ -177,14 +179,16 @@ int do_search_specific(FILE *input, char *zone_name) {
         if (target) json_decref(target);
     } // while
 
-    rcDisconnect(conn);
+    baton_disconnect(session);
+    free_baton_session(session);
 
     logmsg(DEBUG, "Processed %d items with %d errors", item_count, error_count);
 
     return 0;
 
 error:
-    if (conn) rcDisconnect(conn);
+    baton_disconnect(session);
+    free_baton_session(session);
 
     logmsg(ERROR, "Processed %d items with %d errors", item_count, error_count);
 

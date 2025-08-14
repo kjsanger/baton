@@ -732,23 +732,23 @@ int contains_avu(json_t *avus, json_t *avu) {
 }
 
 int represents_collection(const json_t *object) {
-    return (has_json_str_value(object, JSON_COLLECTION_KEY,
-                               JSON_COLLECTION_SHORT_KEY) &&
-            !has_json_str_value(object, JSON_DATA_OBJECT_KEY,
-                                JSON_DATA_OBJECT_SHORT_KEY));
+    return has_json_str_value(object, JSON_COLLECTION_KEY,
+                              JSON_COLLECTION_SHORT_KEY) &&
+        !has_json_str_value(object, JSON_DATA_OBJECT_KEY,
+                            JSON_DATA_OBJECT_SHORT_KEY);
 }
 
 int represents_data_object(const json_t *object) {
-    return (has_json_str_value(object, JSON_COLLECTION_KEY,
-                               JSON_COLLECTION_SHORT_KEY) &&
-            has_json_str_value(object, JSON_DATA_OBJECT_KEY,
-                               JSON_DATA_OBJECT_SHORT_KEY));
+    return has_json_str_value(object, JSON_COLLECTION_KEY,
+                              JSON_COLLECTION_SHORT_KEY) &&
+        has_json_str_value(object, JSON_DATA_OBJECT_KEY,
+                           JSON_DATA_OBJECT_SHORT_KEY);
 }
 
 int represents_directory(const json_t *object) {
-    return (has_json_str_value(object, JSON_DIRECTORY_KEY,
-                               JSON_DIRECTORY_SHORT_KEY) &&
-            !has_json_str_value(object, JSON_FILE_KEY, NULL));
+    return has_json_str_value(object, JSON_DIRECTORY_KEY,
+                              JSON_DIRECTORY_SHORT_KEY) &&
+        !has_json_str_value(object, JSON_FILE_KEY, NULL);
 }
 
 int represents_file(const json_t *object) {

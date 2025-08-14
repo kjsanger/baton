@@ -26,6 +26,8 @@
 
 #include "config.h"
 #include "baton.h"
+#include "operations.h"
+#include "utilities.h"
 
 static int debug_flag      = 0;
 static int help_flag       = 0;
@@ -41,7 +43,7 @@ int main(const int argc, char *argv[]) {
     int exit_status = 0;
     const char *json_file = NULL;
     FILE *input     = NULL;
-    unsigned long max_connect_time = DEFAULT_MAX_CONNECT_TIME;
+    long max_connect_time = DEFAULT_MAX_CONNECT_TIME;
 
     while (1) {
         static struct option long_options[] = {
@@ -71,10 +73,10 @@ int main(const int argc, char *argv[]) {
             case 'c':
                 errno = 0;
                 char *end_ptr;
-                const unsigned long val = strtoul(optarg, &end_ptr, 10);
+                const long val = strtol(optarg, &end_ptr, 10);
 
-                if ((errno == ERANGE && val == ULONG_MAX) ||
-                    (errno != 0 && val == 0)              ||
+                if ((errno == ERANGE && val == LONG_MAX) ||
+                    (errno != 0 && val == 0)             ||
                     end_ptr == optarg) {
                     fprintf(stderr, "Invalid --connect-time '%s'\n", optarg);
                     exit(1);

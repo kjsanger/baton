@@ -19,8 +19,10 @@
  * @author Keith James <kdj@sanger.ac.uk>
  */
 
+#include "json.h"
 #include "list.h"
 #include "read.h"
+#include "utilities.h"
 
 static json_t *list_data_object(rcComm_t *conn, rodsPath_t *rods_path,
                                 const option_flags flags, baton_error_t *error) {
@@ -69,7 +71,16 @@ static json_t *list_data_object(rcComm_t *conn, rodsPath_t *rods_path,
 
     if (flags & PRINT_SIZE) {
         const json_t *str_size = json_object_get(data_object, JSON_SIZE_KEY);
-        const size_t num_size = atol(json_string_value(str_size));
+        const char *size_val = json_string_value(str_size);
+
+        errno = 0;
+        char *end_ptr;
+        const long num_size = strtol(size_val, &end_ptr, 10);
+        if ((errno == ERANGE && num_size == LONG_MAX) || (errno != 0 && num_size == 0)) {
+            set_baton_error(error, -1, "Failed to parse data object size '%s'", size_val);
+            goto error;
+        }
+
         json_object_del(data_object, JSON_SIZE_KEY);
         json_object_set_new(data_object, JSON_SIZE_KEY, json_integer(num_size));
     }

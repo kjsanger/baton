@@ -23,7 +23,9 @@
 
 #include "config.h"
 #include "compat_checksum.h"
+#include "json.h"
 #include "read.h"
+#include "utilities.h"
 
 static char *do_slurp(rcComm_t *conn, rodsPath_t *rods_path,
                       const size_t buffer_size, baton_error_t *error) {

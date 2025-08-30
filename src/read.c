@@ -27,7 +27,7 @@
 #include "read.h"
 #include "utilities.h"
 
-static char *do_slurp(rcComm_t *conn, rodsPath_t *rods_path,
+static char *do_slurp(baton_session_t *session, rodsPath_t *rods_path,
                       const size_t buffer_size, baton_error_t *error) {
     data_obj_file_t *obj_file = NULL;
     const int           flags = 0;
@@ -40,11 +40,11 @@ static char *do_slurp(rcComm_t *conn, rodsPath_t *rods_path,
 
     logmsg(DEBUG, "Using a 'slurp' buffer size of %zu bytes", buffer_size);
 
-    obj_file = open_data_obj(conn, rods_path, O_RDONLY, flags, error);
+    obj_file = open_data_obj(session, rods_path, O_RDONLY, flags, error);
     if (error->code != 0) goto error;
 
-    char *content = slurp_data_obj(conn, obj_file, buffer_size, error);
-    const int status = close_data_obj(conn, obj_file);
+    char *content = slurp_data_obj(session, obj_file, buffer_size, error);
+    const int status = close_data_obj(session, obj_file);
 
     if (error->code != 0) goto error;
     if (status < 0) {
@@ -66,7 +66,62 @@ error:
     return NULL;
 }
 
-json_t *ingest_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
+int redirect_for_get(baton_session_t *session, dataObjInp_t *obj_open_in, baton_error_t *error) {
+    int status = 0;
+
+    if (!session->redirect_host) {
+        logmsg(DEBUG, "Checking for host redirection from '%s' to get '%s'",
+            session->local_host, obj_open_in->objPath);
+
+        status = rcGetHostForGet(session->conn, obj_open_in, &session->redirect_host);
+        if (status < 0) {
+            char *err_subname;
+            const char *err_name = rodsErrorName(status, &err_subname);
+            set_baton_error(error, status,
+                            "Failed to choose host to get data object: '%s' error %d %s",
+                            obj_open_in->objPath, status, err_name);
+            return status;
+        }
+
+        if (session->redirect_host == NULL) {
+            logmsg(DEBUG, "No host redirection from '%s' available for '%s'",
+                session->local_host, obj_open_in->objPath);
+            return status;
+        }
+
+        // iRODS is very sensitive to host naming and not good at detecting if a hostname
+        // routes to itself. It doesn't handle "localhost" as a hostname, so if we want to
+        // support that (which we do, for test instances), we need to check for that name
+        // ourselves and avoid redirecting in that case.
+        if (strcmp(session->redirect_host, "localhost") == 0) {
+            logmsg(DEBUG, "Not redirecting from '%s' to put '%s' as it is localhost",
+                session->local_host, obj_open_in->objPath);
+            return status;
+        }
+
+        if (strcmp(session->redirect_host, session->local_host) == 0) {
+            logmsg(DEBUG, "No host redirection from '%s'  to '%s' required for '%s'",
+                session->local_host, session->redirect_host, obj_open_in->objPath);
+            return status;
+        }
+
+        logmsg(INFO, "Redirecting from '%s' to '%s' to get '%s",
+               session->local_host, session->redirect_host, obj_open_in->objPath);
+        baton_disconnect(session);
+
+        status = baton_reconnect(session);
+        if (status < 0) {
+            set_baton_error(error, status,
+                            "Failed to reconnect to put '%s' error %d",
+                            obj_open_in->objPath, status);
+            return status;
+        }
+    }
+
+    return status;
+}
+
+json_t *ingest_data_obj(baton_session_t *session, rodsPath_t *rods_path,
                         const option_flags flags, const size_t buffer_size,
                         baton_error_t *error) {
     char *content = NULL;
@@ -86,10 +141,10 @@ json_t *ingest_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
         goto error;
     }
 
-    json_t *results = list_path(conn, rods_path, flags, error);
+    json_t *results = list_path(session->conn, rods_path, flags, error);
     if (error->code != 0) goto error;
 
-    content = do_slurp(conn, rods_path, buffer_size, error);
+    content = do_slurp(session, rods_path, buffer_size, error);
     if (error->code != 0) goto error;
 
     if (content) {
@@ -123,7 +178,7 @@ error:
     return NULL;
 }
 
-data_obj_file_t *open_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
+data_obj_file_t *open_data_obj(baton_session_t *session, rodsPath_t *rods_path,
                                const int open_flag, const int flags,
                                baton_error_t *error) {
     data_obj_file_t *data_obj = NULL;
@@ -145,7 +200,7 @@ data_obj_file_t *open_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
         case (O_RDONLY):
           obj_open_in.openFlags = O_RDONLY;
 
-          descriptor = rcDataObjOpen(conn, &obj_open_in);
+          descriptor = rcDataObjOpen(session->conn, &obj_open_in);
           break;
 
         case (O_WRONLY):
@@ -153,7 +208,7 @@ data_obj_file_t *open_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
           obj_open_in.createMode = 0750;
           obj_open_in.dataSize   = 0;
           addKeyVal(&obj_open_in.condInput, FORCE_FLAG_KW, "");
-          descriptor = rcDataObjCreate(conn, &obj_open_in);
+          descriptor = rcDataObjCreate(session->conn, &obj_open_in);
           clearKeyVal(&obj_open_in.condInput);
           break;
 
@@ -196,9 +251,9 @@ error:
     return NULL;
 }
 
-int close_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj) {
+int close_data_obj(baton_session_t *session, const data_obj_file_t *data_obj) {
     logmsg(DEBUG, "Closing '%s'", data_obj->path);
-    const int status = rcDataObjClose(conn, data_obj->open_obj);
+    const int status = rcDataObjClose(session->conn, data_obj->open_obj);
 
     return status;
 }
@@ -242,7 +297,7 @@ finally:
     return num_read;
 }
 
-size_t read_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj,
+size_t read_data_obj(baton_session_t *session, const data_obj_file_t *data_obj,
                      FILE *out, const size_t buffer_size, baton_error_t *error) {
     size_t num_read    = 0;
     size_t num_written = 0;
@@ -271,7 +326,7 @@ size_t read_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj,
     }
     
     size_t nr;
-    while ((nr = read_chunk(conn, data_obj, buffer, buffer_size, error)) > 0) {
+    while ((nr = read_chunk(session->conn, data_obj, buffer, buffer_size, error)) > 0) {
         num_read += nr;
         logmsg(DEBUG, "Writing %zu bytes from '%s' to stream",
                nr, data_obj->path);
@@ -307,7 +362,7 @@ size_t read_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj,
         goto finally;
     }
 
-    if (!validate_md5_last_read(conn, data_obj)) {
+    if (!validate_md5_last_read(session->conn, data_obj)) {
         logmsg(WARN, "Checksum mismatch for '%s' having MD5 %s on reading",
                data_obj->path, data_obj->md5_last_read);
     }
@@ -321,7 +376,7 @@ finally:
     return num_written;
 }
 
-char *slurp_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj,
+char *slurp_data_obj(baton_session_t *session, const data_obj_file_t *data_obj,
                      const size_t buffer_size, baton_error_t *error) {
     char *buffer  = NULL;
     char *content = NULL;
@@ -355,7 +410,7 @@ char *slurp_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj,
     }
 
     size_t nr;
-    while ((nr = read_chunk(conn, data_obj, buffer, buffer_size, error)) > 0) {
+    while ((nr = read_chunk(session->conn, data_obj, buffer, buffer_size, error)) > 0) {
       logmsg(TRACE, "Read %zu bytes. Capacity %zu, num read %zu",
              nr, capacity, num_read);
         if (num_read + nr > capacity) {
@@ -393,7 +448,7 @@ char *slurp_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj,
     }
     set_md5_last_read(data_obj, digest);
 
-    if (!validate_md5_last_read(conn, data_obj)) {
+    if (!validate_md5_last_read(session->conn, data_obj)) {
         logmsg(WARN, "Checksum mismatch for '%s' having MD5 %s on reading",
                data_obj->path, data_obj->md5_last_read);
     }
@@ -412,7 +467,7 @@ error:
     return NULL;
 }
 
-int get_data_obj_file(rcComm_t *conn, rodsPath_t *rods_path, const char *local_path,
+int get_data_obj_file(baton_session_t *session, rodsPath_t *rods_path, const char *local_path,
                       option_flags flags, baton_error_t *error) {
     char *tmpname  = NULL;
     dataObjInp_t obj_get_in = {0};
@@ -445,7 +500,9 @@ int get_data_obj_file(rcComm_t *conn, rodsPath_t *rods_path, const char *local_p
     tmpname = copy_str(local_path, MAX_STR_LEN);
     if (!tmpname) goto error;
 
-    status = rcDataObjGet(conn, &obj_get_in, tmpname);
+    if (redirect_for_get(session, &obj_get_in, error)) goto error;
+
+    status = rcDataObjGet(session->conn, &obj_get_in, tmpname);
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);
@@ -466,7 +523,7 @@ error:
     return error->code;
 }
 
-int get_data_obj_stream(rcComm_t *conn, rodsPath_t *rods_path, FILE *out,
+int get_data_obj_stream(baton_session_t *session, rodsPath_t *rods_path, FILE *out,
                         const size_t buffer_size, baton_error_t *error) {
     data_obj_file_t *data_obj = NULL;
     const int           flags = 0;
@@ -488,11 +545,11 @@ int get_data_obj_stream(rcComm_t *conn, rodsPath_t *rods_path, FILE *out,
         goto error;
     }
 
-    data_obj = open_data_obj(conn, rods_path, O_RDONLY, flags, error);
+    data_obj = open_data_obj(session, rods_path, O_RDONLY, flags, error);
     if (error->code != 0) goto error;
 
-    const size_t nr = read_data_obj(conn, data_obj, out, buffer_size, error);
-    const int status = close_data_obj(conn, data_obj);
+    const size_t nr = read_data_obj(session, data_obj, out, buffer_size, error);
+    const int status = close_data_obj(session, data_obj);
 
     if (error->code != 0) goto error;
     if (status < 0) {

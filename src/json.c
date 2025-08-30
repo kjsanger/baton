@@ -646,6 +646,10 @@ int op_replicate_p(const json_t *operation_args) {
     return json_is_true(json_object_get(operation_args, JSON_OP_REPLICATE));
 }
 
+int op_redirect_to_server_p(const json_t *operation_args) {
+    return json_is_true(json_object_get(operation_args, JSON_OP_REDIRECT_TO_SERVER));
+}
+
 int op_save_p(const json_t *operation_args) {
     return json_is_true(json_object_get(operation_args, JSON_OP_SAVE));
 }

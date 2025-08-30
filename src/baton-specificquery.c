@@ -29,6 +29,7 @@
 #include "json.h"
 #include "utilities.h"
 
+// clang-format off
 static int debug_flag      = 0;
 static int help_flag       = 0;
 static int unbuffered_flag = 0;
@@ -194,3 +195,4 @@ error:
 
     return 1;
 }
+// clang-format on

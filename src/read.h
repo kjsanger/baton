@@ -61,10 +61,10 @@ typedef struct data_obj_file {
  *
  * @return A new struct, which must be freed by the caller.
  */
-data_obj_file_t *open_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
+data_obj_file_t *open_data_obj(baton_session_t *session, rodsPath_t *rods_path,
                                int open_flag, int flags, baton_error_t *error);
 
-int close_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj);
+int close_data_obj(baton_session_t *session, const data_obj_file_t *data_obj);
 
 void free_data_obj(data_obj_file_t *obj_file);
 
@@ -93,7 +93,7 @@ size_t read_chunk(rcComm_t *conn, const data_obj_file_t *data_obj,
  *
  * @return The number of bytes copied in total.
  */
-size_t read_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj, FILE *out,
+size_t read_data_obj(baton_session_t *session, const data_obj_file_t *data_obj, FILE *out,
                      size_t buffer_size, baton_error_t *error);
 
 /**
@@ -108,17 +108,17 @@ size_t read_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj, FILE *out,
  * @return A new byte string containing the entire data object, which must be
  *         freed by the caller.
  */
-char *slurp_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj,
+char *slurp_data_obj(baton_session_t *session, const data_obj_file_t *data_obj,
                      size_t buffer_size, baton_error_t *error);
 
-json_t *ingest_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
+json_t *ingest_data_obj(baton_session_t *session, rodsPath_t *rods_path,
                         option_flags flags,
                         size_t buffer_size, baton_error_t *error);
 
-int get_data_obj_file(rcComm_t *conn, rodsPath_t *rods_path, const char *local_path,
+int get_data_obj_file(baton_session_t *session, rodsPath_t *rods_path, const char *local_path,
                       option_flags flags, baton_error_t *error);
 
-int get_data_obj_stream(rcComm_t *conn, rodsPath_t *rods_path, FILE *out,
+int get_data_obj_stream(baton_session_t *session, rodsPath_t *rods_path, FILE *out,
                         size_t buffer_size, baton_error_t *error);
 
 char *checksum_data_obj(rcComm_t *conn, rodsPath_t *rods_path,

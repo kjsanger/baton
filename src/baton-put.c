@@ -29,10 +29,12 @@
 #include "operations.h"
 #include "utilities.h"
 
+// clang-format off
 static int checksum_flag      = 0;
 static int verify_flag        = 0;
 static int debug_flag         = 0;
 static int help_flag          = 0;
+static int redirect_flag      = 0;
 static int silent_flag        = 0;
 static int single_server_flag = 0;
 static int unbuffered_flag    = 0;
@@ -59,6 +61,7 @@ int main(const int argc, char *argv[]) {
             {"checksum",      no_argument, &checksum_flag,      1},
             {"debug",         no_argument, &debug_flag,         1},
             {"help",          no_argument, &help_flag,          1},
+            {"redirect",      no_argument, &redirect_flag,      1},
             {"silent",        no_argument, &silent_flag,        1},
             {"single-server", no_argument, &single_server_flag, 1},
             {"unbuffered",    no_argument, &unbuffered_flag,    1},
@@ -118,6 +121,7 @@ int main(const int argc, char *argv[]) {
 
     if (checksum_flag)      flags = flags | CALCULATE_CHECKSUM;
     if (verify_flag)        flags = flags | VERIFY_CHECKSUM;
+    if (redirect_flag)      flags = flags | REDIRECT_TO_SERVER;
     if (single_server_flag) flags = flags | SINGLE_SERVER;
     if (unsafe_flag)        flags = flags | UNSAFE_RESOLVE;
     if (unbuffered_flag)    flags = flags | FLUSH;
@@ -147,6 +151,7 @@ int main(const int argc, char *argv[]) {
         "                  30 minutes.\n"
         "  --file          The JSON file describing the data objects.\n"
         "                  Optional, defaults to STDIN.\n"
+        "  --redirect      Redirect to a resource server for the operation.\n"
         "  --silent        Silence error messages.\n"
         "  --single-server Only connect to a single iRODS server\n"
         "  --unbuffered    Flush print operations for each JSON object.\n"
@@ -225,3 +230,4 @@ int main(const int argc, char *argv[]) {
 
     exit(exit_status);
 }
+// clang-format on

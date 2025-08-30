@@ -27,6 +27,7 @@
 #include "operations.h"
 #include "utilities.h"
 
+// clang-format off
 static int debug_flag      = 0;
 static int help_flag       = 0;
 static int silent_flag     = 0;
@@ -178,3 +179,4 @@ args_error:
 
     exit(exit_status);
 }
+// clang-format on

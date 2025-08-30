@@ -33,7 +33,62 @@ int chksumLocFile( const char *fileName, char *chksumStr, const char* );
 #include "write.h"
 #include "utilities.h"
 
-int put_data_obj(rcComm_t *conn, const char *local_path, rodsPath_t *rods_path,
+int redirect_for_put(baton_session_t *session, dataObjInp_t *obj_open_in, baton_error_t *error) {
+    int status = 0;
+
+    if (!session->redirect_host) {
+        logmsg(DEBUG, "Checking for host redirection from '%s' to put '%s'",
+            session->local_host, obj_open_in->objPath);
+
+        status = rcGetHostForPut(session->conn, obj_open_in, &session->redirect_host);
+        if (status < 0) {
+            char *err_subname;
+            const char *err_name = rodsErrorName(status, &err_subname);
+            set_baton_error(error, status,
+                            "Failed to choose host to put data object: '%s' error %d %s",
+                            obj_open_in->objPath, status, err_name);
+            return status;
+        }
+
+        if (session->redirect_host == NULL) {
+            logmsg(DEBUG, "No host redirection from '%s' available for '%s'",
+                session->local_host, obj_open_in->objPath);
+            return status;
+        }
+
+        // iRODS is very sensitive to host naming and not good at detecting if a hostname
+        // routes to itself. It doesn't handle "localhost" as a hostname, so if we want to
+        // support that (which we do, for test instances), we need to check for that name
+        // ourselves and avoid redirecting in that case.
+        if (strcmp(session->redirect_host, "localhost") == 0) {
+            logmsg(DEBUG, "Not redirecting from '%s' to put '%s' as it is localhost",
+                session->local_host, obj_open_in->objPath);
+            return status;
+        }
+
+        if (strcmp(session->redirect_host, session->local_host) == 0) {
+            logmsg(DEBUG, "No host redirection from '%s'  to '%s' required for '%s'",
+                session->local_host, session->redirect_host, obj_open_in->objPath);
+            return status;
+        }
+
+        logmsg(INFO, "Redirecting from '%s' to '%s' to put '%s",
+               session->local_host, session->redirect_host, obj_open_in->objPath);
+        baton_disconnect(session);
+
+        status = baton_reconnect(session);
+        if (status < 0) {
+            set_baton_error(error, status,
+                            "Failed to reconnect to put '%s' error %d",
+                            obj_open_in->objPath, status);
+            return status;
+        }
+    }
+
+    return status;
+}
+
+int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *rods_path,
                  char *default_resource, char *checksum, const int flags,
                  baton_error_t *error) {
     char *tmpname  = NULL;
@@ -115,7 +170,9 @@ int put_data_obj(rcComm_t *conn, const char *local_path, rodsPath_t *rods_path,
     // Always force put over any existing data to make puts idempotent.
     addKeyVal(&obj_open_in.condInput, FORCE_FLAG_KW, "");
 
-    status = rcDataObjPut(conn, &obj_open_in, tmpname);
+    if (redirect_for_put(session, &obj_open_in, error)) goto error;
+
+    status = rcDataObjPut(session->conn, &obj_open_in, tmpname);
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);
@@ -136,7 +193,7 @@ error:
     return error->code;
 }
 
-size_t write_data_obj(rcComm_t *conn, FILE *in, rodsPath_t *rods_path,
+size_t write_data_obj(baton_session_t *session, FILE *in, rodsPath_t *rods_path,
                       const size_t buffer_size, const int flags, baton_error_t *error) {
     data_obj_file_t *obj = NULL;
     char *buffer         = NULL;
@@ -158,7 +215,7 @@ size_t write_data_obj(rcComm_t *conn, FILE *in, rodsPath_t *rods_path,
         goto finally;
     }
 
-    obj = open_data_obj(conn, rods_path, O_WRONLY, flags, error);
+    obj = open_data_obj(session, rods_path, O_WRONLY, flags, error);
     if (error->code != 0) goto finally;
 
     unsigned char digest[16];
@@ -173,7 +230,7 @@ size_t write_data_obj(rcComm_t *conn, FILE *in, rodsPath_t *rods_path,
         num_read += nr;
         logmsg(DEBUG, "Writing %zu bytes from stream to '%s'", nr, obj->path);
 
-        const size_t nw = write_chunk(conn, buffer, obj, nr, error);
+        const size_t nw = write_chunk(session->conn, buffer, obj, nr, error);
         if (error->code != 0) {
             logmsg(ERROR, "Failed to write to '%s': error %d %s",
                    obj->path, error->code, error->message);
@@ -196,7 +253,7 @@ size_t write_data_obj(rcComm_t *conn, FILE *in, rodsPath_t *rods_path,
     }
     set_md5_last_read(obj, digest);
 
-    const int status = close_data_obj(conn, obj);
+    const int status = close_data_obj(session, obj);
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);
@@ -212,7 +269,7 @@ size_t write_data_obj(rcComm_t *conn, FILE *in, rodsPath_t *rods_path,
         goto finally;
     }
 
-    if (!validate_md5_last_read(conn, obj)) {
+    if (!validate_md5_last_read(session->conn, obj)) {
         logmsg(WARN, "Checksum mismatch for '%s' having MD5 %s on reading",
                obj->path, obj->md5_last_read);
     }

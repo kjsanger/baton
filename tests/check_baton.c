@@ -37,6 +37,7 @@
 
 int exit_flag;
 
+// clang-format off
 static int MAX_COMMAND_LEN = 1024;
 static int MAX_PATH_LEN    = 4096;
 
@@ -50,6 +51,7 @@ static char *SQL_SETUP_SCRIPT    = "scripts/setup_sql.sh";
 
 static char *TEARDOWN_SCRIPT     = "scripts/teardown_irods.sh";
 static char *SQL_TEARDOWN_SCRIPT = "scripts/teardown_sql.sh";
+// clang-format on
 
 static void set_current_rods_root(char *in, char *out) {
     rodsEnv rodsEnv;
@@ -1980,7 +1982,7 @@ START_TEST(test_get_data_obj_stream) {
     const size_t buffer_size = 1024;
     baton_error_t error;
     const int num_written =
-        get_data_obj_stream(session->conn, &rods_obj_path, tmp, buffer_size, &error);
+        get_data_obj_stream(session, &rods_obj_path, tmp, buffer_size, &error);
     ck_assert_int_eq(num_written, 10240);
     ck_assert_int_eq(error.code, 0);
 
@@ -2018,19 +2020,19 @@ START_TEST(test_slurp_data_obj) {
                                       2048, 4096, 8192, 16384, 37268 };
     for (int i = 0; i < 10; i++) {
         baton_error_t open_error;
-        const data_obj_file_t *obj = open_data_obj(session->conn, &rods_obj_path,
+        const data_obj_file_t *obj = open_data_obj(session, &rods_obj_path,
                                                    O_RDONLY, flags, &open_error);
         ck_assert_int_eq(open_error.code, 0);
 
         baton_error_t slurp_error;
-        char *data = slurp_data_obj(session->conn, obj, buffer_sizes[i],
+        char *data = slurp_data_obj(session, obj, buffer_sizes[i],
                                     &slurp_error);
         ck_assert_int_eq(slurp_error.code, 0);
         ck_assert_int_eq(strnlen(data, 10240), 10240);
         ck_assert_str_eq(obj->md5_last_read,
                          "4efe0c1befd6f6ac4621cbdb13241246");
 
-        ck_assert_int_eq(close_data_obj(session->conn, obj), 0);
+        ck_assert_int_eq(close_data_obj(session, obj), 0);
 
         if (data) free(data);
     }
@@ -2065,7 +2067,7 @@ START_TEST(test_ingest_data_obj) {
                                       2048, 4096, 8192, 16384, 37268 };
     for (int i = 0; i < 10; i++) {
         baton_error_t error;
-        json_t *obj = ingest_data_obj(session->conn, &rods_obj_path, flags,
+        json_t *obj = ingest_data_obj(session, &rods_obj_path, flags,
                                       buffer_sizes[i], &error);
         ck_assert_int_eq(error.code, 0);
 
@@ -2100,7 +2102,7 @@ START_TEST(test_get_data_obj_file) {
     const int fd = mkstemp(template);
 
     baton_error_t error;
-    int get_status = get_data_obj_file(session->conn, &rods_obj_path, template,
+    int get_status = get_data_obj_file(session, &rods_obj_path, template,
                                        flags | FORCE,
                                        &error);
     ck_assert_int_eq(get_status, 0);
@@ -2148,7 +2150,7 @@ START_TEST(test_write_data_obj) {
     for (int i = 0; i < 10; i++) {
         baton_error_t write_error;
         FILE *in = fopen(file_path, "r");
-        size_t num_written = write_data_obj(session->conn, in, &rods_obj_path,
+        size_t num_written = write_data_obj(session, in, &rods_obj_path,
                                             buffer_sizes[i],
                                             flags, &write_error);
         ck_assert_int_eq(write_error.code, 0);
@@ -2176,7 +2178,7 @@ START_TEST(test_write_data_obj) {
         int fd = mkstemp(template);
 
         baton_error_t get_error;
-        int get_status = get_data_obj_file(session->conn, &result_obj_path, template,
+        int get_status = get_data_obj_file(session, &result_obj_path, template,
                                            flags | FORCE,
                                            &get_error);
         ck_assert_int_eq(get_error.code, 0);
@@ -2220,7 +2222,7 @@ START_TEST(test_put_data_obj) {
 
     baton_error_t put_error;
     int put_status =
-        put_data_obj(session->conn, file_path, &rods_obj_path, TEST_RESOURCE, md5,
+        put_data_obj(session, file_path, &rods_obj_path, TEST_RESOURCE, md5,
                      flags | VERIFY_CHECKSUM,
                      &put_error);
     ck_assert_int_eq(put_error.code, 0);
@@ -2245,7 +2247,7 @@ START_TEST(test_put_data_obj) {
     int fd = mkstemp(template);
 
     baton_error_t get_error;
-    int get_status = get_data_obj_file(session->conn, &result_obj_path, template,
+    int get_status = get_data_obj_file(session, &result_obj_path, template,
                                        flags | FORCE,
                                        &get_error);
     ck_assert_int_eq(get_error.code, 0);
@@ -2260,7 +2262,7 @@ START_TEST(test_put_data_obj) {
 
     baton_error_t bad_checksum_error;
     int bad_checksum_status =
-        put_data_obj(session->conn, file_path, &rods_obj_path, TEST_RESOURCE,
+        put_data_obj(session, file_path, &rods_obj_path, TEST_RESOURCE,
                      "dummy_bad_checksum",
                      flags | VERIFY_CHECKSUM,
                      &bad_checksum_error);
@@ -2312,7 +2314,7 @@ START_TEST(test_checksum_data_obj) {
     ck_assert_int_eq(resolve_error.code, 0);
 
     baton_error_t put_error;
-    int put_status = put_data_obj(session->conn, file_path, &rods_obj_path,
+    int put_status = put_data_obj(session, file_path, &rods_obj_path,
                                   TEST_RESOURCE, NULL,
                                   flags, &put_error);
     ck_assert_int_eq(put_error.code, 0);
@@ -3021,19 +3023,19 @@ START_TEST(test_regression_github_issue252) {
     ck_assert_int_eq(sver_error.code, 0);
 
     baton_error_t open_error;
-    const data_obj_file_t *obj = open_data_obj(session->conn, &rods_path,
+    const data_obj_file_t *obj = open_data_obj(session, &rods_path,
                                                O_RDONLY, 0, &open_error);
 
     // iRODS 4.2.7 lets you "open" a data object you can't read, but you
     // can't get bytes from it, giving the following error
     if (str_equals(server_version, "4.2.7", MAX_STR_LEN)) {
         baton_error_t slurp_error;
-        slurp_data_obj(session->conn, obj, 512, &slurp_error);
+        slurp_data_obj(session, obj, 512, &slurp_error);
 
         // Furthermore, iRODS 4.2.7 gives the inappropriate error
         // -190000 SYS_FILE_DESC_OUT_OF_RANGE if it gets this far.
         ck_assert_int_eq(slurp_error.code, -19000);
-        ck_assert_int_eq(close_data_obj(session->conn, obj), -19000);
+        ck_assert_int_eq(close_data_obj(session, obj), -19000);
     } else {
         ck_assert_int_eq(open_error.code, -818000);
     }

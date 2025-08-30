@@ -128,6 +128,7 @@
 #define JSON_OP_RAW                "raw"
 #define JSON_OP_RECURSE            "recurse"
 #define JSON_OP_REPLICATE          "replicate"
+#define JSON_OP_REDIRECT_TO_SERVER "redirect"
 #define JSON_OP_SAVE               "save"
 #define JSON_OP_SINGLE_SERVER      "single-server"
 #define JSON_OP_SIZE               "size"
@@ -285,6 +286,8 @@ int op_raw_p(const json_t *operation_args);
 int op_recurse_p(const json_t *operation_args);
 
 int op_replicate_p(const json_t *operation_args);
+
+int op_redirect_to_server_p(const json_t *operation_args);
 
 int op_save_p(const json_t *operation_args);
 

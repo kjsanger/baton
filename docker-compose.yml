@@ -1,7 +1,9 @@
 services:
   irods-server:
     container_name: irods-server
-    image: "ghcr.io/wtsi-npg/ub-16.04-irods-4.2.7:latest"
+    # image: "ghcr.io/wtsi-npg/ub-16.04-irods-4.2.7:latest"
+    image: "ghcr.io/wtsi-npg/ub-18.04-irods-4.2.11:latest"
+    # image: "ghcr.io/wtsi-npg/ub-22.04-irods-4.3.4:latest"
     platform: linux/amd64
     restart: always
     ports:
@@ -13,9 +15,13 @@ services:
     platform: linux/amd64
     build:
       context: .
+      # dockerfile: ./Dockerfile.ubuntu-16.04-dev
       dockerfile: ./Dockerfile.ubuntu-18.04-dev
+      # dockerfile: ./Dockerfile.ubuntu-22.04-dev
+      args:
+        APP_UID: 1001
     volumes:
-      - "${PWD}:/app"
+      - ".:/app"
     environment:
       IRODS_ENVIRONMENT_FILE: "/app/tests/.irods/irods_environment.json"
     depends_on:

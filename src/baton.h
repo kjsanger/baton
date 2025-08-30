@@ -101,7 +101,9 @@ typedef enum {
     /** Avoid any operations that contact servers other than rodshost */
     SINGLE_SERVER      = 1 << 20,
     /** Use advisory write lock on server */
-    WRITE_LOCK         = 1 << 21
+    WRITE_LOCK         = 1 << 21,
+    /** Redirect to a resource server */
+    REDIRECT_TO_SERVER = 1 << 22,
 } option_flags;
 
 
@@ -129,7 +131,8 @@ typedef struct mod_metadata_in {
  * @brief The baton session for communicating with iRODS.
  */
 typedef struct baton_session {
-    char* redirect_host;
+    char *local_host;
+    char *redirect_host;
     long max_connect_time;
     int reconnect_flag;
     rodsEnv *env;
@@ -190,6 +193,8 @@ char* get_client_version(void);
 char* get_server_version(rcComm_t *conn, baton_error_t *error);
 
 int baton_connect(baton_session_t *session);
+
+int baton_reconnect(baton_session_t *session);
 
 void baton_disconnect(baton_session_t *session);
 

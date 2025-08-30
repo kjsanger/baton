@@ -30,6 +30,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <rodsClient.h>
+#include <sockComm.h>
+
 #include "config.h"
 #include "baton.h"
 #include "json.h"
@@ -68,8 +71,6 @@ static void map_mod_args(modAVUMetadataInp_t *out, const mod_metadata_in_t *in) 
     out->arg9 = "";
 }
 
-
-
 baton_session_t *new_baton_session(void) {
     baton_session_t *session = calloc(1, sizeof(baton_session_t));
     if (!session) {
@@ -87,6 +88,9 @@ void free_baton_session(baton_session_t *session) {
     if (session) {
         if (session->env) {
             free(session->env);
+        }
+        if (session->local_host) {
+            free(session->local_host);
         }
         free(session);
     }
@@ -219,11 +223,13 @@ int baton_connect(baton_session_t *session) {
     session->conn = rcConnect(env->rodsHost, env->rodsPort, env->rodsUserName,
                               env->rodsZone, session->reconnect_flag, &errmsg);
     if (!session->conn) {
-        logmsg(ERROR, "Failed to connect to %s:%d zone '%s' as '%s'",
-               env->rodsHost, env->rodsPort, env->rodsZone, env->rodsUserName);
-        status = -1;
+        logmsg(ERROR, "Failed to connect to %s:%d zone '%s' as '%s': %s",
+               env->rodsHost, env->rodsPort, env->rodsZone, env->rodsUserName, errmsg.msg);
+        status = errmsg.status;
         goto error;
     }
+
+    session->local_host = strdup(env->rodsHost);
 
     const int sigstatus = apply_signal_handler();
     if (sigstatus != 0) {
@@ -252,6 +258,17 @@ int baton_connect(baton_session_t *session) {
 
 error:
     baton_disconnect(session);
+
+    return status;
+}
+
+int baton_reconnect(baton_session_t *session) {
+    int status = rcReconnect(&session->conn, session->redirect_host, session->env, session->reconnect_flag);
+    if (status < 0) {
+        char *err_subname;
+        const char *err_name = rodsErrorName(status, &err_subname);
+        logmsg(ERROR, "Failed to reconnect to '%s': %d %s", session->redirect_host, status, err_name);
+    }
 
     return status;
 }

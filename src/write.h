@@ -47,7 +47,7 @@
  *
  * @return The number of bytes copied in total.
  */
-int put_data_obj(rcComm_t *conn, const char *local_path, rodsPath_t *rods_path,
+int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *rods_path,
                  char *default_resource, char *checksum, int flags,
 		 baton_error_t *error);
 
@@ -78,7 +78,7 @@ size_t write_chunk(rcComm_t *conn, char *buffer, const data_obj_file_t *data_obj
  *
  * @return The number of bytes copied in total.
  */
-size_t write_data_obj(rcComm_t *conn, FILE *in, rodsPath_t *rods_path,
+size_t write_data_obj(baton_session_t *session, FILE *in, rodsPath_t *rods_path,
                       size_t buffer_size, int flags, baton_error_t *error);
 
 int remove_data_object(rcComm_t *conn, rodsPath_t *rods_path, int flags,

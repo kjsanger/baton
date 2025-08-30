@@ -29,6 +29,7 @@
 #include "operations.h"
 #include "utilities.h"
 
+// clang-format off
 static int debug_flag          = 0;
 static int help_flag           = 0;
 static int no_error_flag       = 0;
@@ -207,3 +208,4 @@ int main(const int argc, char *argv[]) {
 
     exit(exit_status);
 }
+// clang-format on

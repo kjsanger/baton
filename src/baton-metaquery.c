@@ -30,6 +30,7 @@
 #include "operations.h"
 #include "utilities.h"
 
+// clang-format off
 static int acl_flag        = 0;
 static int avu_flag        = 0;
 static int checksum_flag   = 0;
@@ -205,3 +206,4 @@ int main(const int argc, char *argv[]) {
 
     exit(exit_status);
 }
+// clang-format on

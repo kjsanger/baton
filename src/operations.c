@@ -108,7 +108,7 @@ static int iterate_json(FILE *input, baton_session_t *session, const baton_json_
         }
 
         pthread_mutex_lock(&session_mutex); // Lock before connecting and executing a job
-        logmsg(DEBUG, "Work to do, lock obtained");
+        logmsg(DEBUG, "Work to do, session lock obtained");
         if (!session->conn) {
             logmsg(NOTICE, "Opening a new iRODS connection");
             status = baton_connect(session);
@@ -121,7 +121,7 @@ static int iterate_json(FILE *input, baton_session_t *session, const baton_json_
         baton_error_t error;
         json_t *result = fn(session, item, args, &error);
         pthread_mutex_unlock(&session_mutex); // Unlock before processing the result
-        logmsg(DEBUG, "Work done, lock released");
+        logmsg(DEBUG, "Work done, session lock released");
 
         if (error.code != 0) {
             // On error, add an error report to the input JSON as a
@@ -256,6 +256,7 @@ json_t *baton_json_dispatch_op(baton_session_t *session, json_t *envelope,
         if (op_verify_checksum_p(jargs))     flags = flags | VERIFY_CHECKSUM    | PRINT_CHECKSUM;
         if (op_contents_p(jargs))            flags = flags | PRINT_CONTENTS;
         if (op_replicate_p(jargs))           flags = flags | PRINT_REPLICATE;
+        if (op_redirect_to_server_p(jargs))  flags = flags | REDIRECT_TO_SERVER;
         if (op_size_p(jargs))                flags = flags | PRINT_SIZE;
         if (op_timestamp_p(jargs))           flags = flags | PRINT_TIMESTAMP;
         if (op_raw_p(jargs))                 flags = flags | PRINT_RAW;
@@ -566,7 +567,7 @@ json_t *baton_json_get_op(baton_session_t *session, json_t *target,
             goto finally;
         }
 
-        get_data_obj_file(session->conn, &rods_path, file, args->flags, error);
+        get_data_obj_file(session, &rods_path, file, args->flags, error);
         if (error->code != 0) goto finally;
     }
     else if (args->flags & PRINT_RAW) {
@@ -576,11 +577,11 @@ json_t *baton_json_get_op(baton_session_t *session, json_t *target,
                             "Failed to allocate memory for result");
             goto finally;
         }
-        get_data_obj_stream(session->conn, &rods_path, stdout, bsize, error);
+        get_data_obj_stream(session, &rods_path, stdout, bsize, error);
         if (error->code != 0) goto finally;
     }
     else {
-        result = ingest_data_obj(session->conn, &rods_path, args->flags, bsize, error);
+        result = ingest_data_obj(session, &rods_path, args->flags, bsize, error);
     }
 
 finally:
@@ -621,7 +622,7 @@ json_t *baton_json_write_op(baton_session_t *session, json_t *target,
         goto finally;
     }
 
-    write_data_obj(session->conn, in, &rods_path, bsize, args->flags, error);
+    write_data_obj(session, in, &rods_path, bsize, args->flags, error);
     const int status = fclose(in);
 
     if (error->code != 0) goto finally;
@@ -667,7 +668,7 @@ json_t *baton_json_put_op(baton_session_t *session, json_t *target,
         logmsg(DEBUG, "Using supplied checksum '%s'", checksum);
     }
 
-    const int status = put_data_obj(session->conn, file, &rods_path, def_resource,
+    const int status = put_data_obj(session, file, &rods_path, def_resource,
                                     checksum, args->flags, error);
     if (error->code != 0) goto finally;
     if (status != 0) {

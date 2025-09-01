@@ -37,7 +37,7 @@ int run_timeout_thread = 1;
 pthread_cond_t watchdog_cond = PTHREAD_COND_INITIALIZER;
 
 // Refresh the connection every timeout seconds
-void *connection_timeout(void *session) {
+void* connection_timeout(void *session) {
     baton_session_t *sess = session;
 
     struct timespec abs_timeout;
@@ -49,14 +49,14 @@ void *connection_timeout(void *session) {
 
         int status;
         do {
-            status = pthread_cond_timedwait(&watchdog_cond, &session_mutex,
-                                            &abs_timeout);
-        } while (status == EINTR);
-        
+            status = pthread_cond_timedwait(&watchdog_cond, &session_mutex, &abs_timeout);
+        }
+        while (status == EINTR);
+
         if (status == ETIMEDOUT) {
             baton_disconnect(sess);
-            logmsg(NOTICE, "Closed the iRODS connection after a timeout "
-                   "of %d seconds", sess->max_connect_time);
+            logmsg(NOTICE, "Closed the iRODS connection after a timeout " "of %d seconds",
+                   sess->max_connect_time);
         }
     }
     pthread_mutex_unlock(&session_mutex);
@@ -64,10 +64,13 @@ void *connection_timeout(void *session) {
     return 0;
 }
 
-static int iterate_json(FILE *input, baton_session_t *session, const baton_json_op fn,
+static int iterate_json(FILE *input,
+                        baton_session_t *session,
+                        const baton_json_op fn,
                         operation_args_t *args,
-                        int *item_count, int *error_count) {
-    int status  = 0;
+                        int *item_count,
+                        int *error_count) {
+    int status = 0;
     pthread_t tid;
     int thread_status = -1;
 
@@ -93,8 +96,8 @@ static int iterate_json(FILE *input, baton_session_t *session, const baton_json_
 
         if (!item) {
             if (!feof(input)) {
-                logmsg(ERROR, "JSON error at line %d, column %d: %s",
-                       load_error.line, load_error.column, load_error.text);
+                logmsg(ERROR, "JSON error at line %d, column %d: %s", load_error.line,
+                       load_error.column, load_error.text);
             }
             continue;
         }
@@ -140,8 +143,8 @@ static int iterate_json(FILE *input, baton_session_t *session, const baton_json_
                 add_result(item, result, &rerror);
                 if (rerror.code != 0) {
                     logmsg(ERROR, "Failed to add error report to item %d "
-                           "in stream. Error code %d: %s", item_count,
-                           rerror.code, rerror.message);
+                           "in stream. Error code %d: %s", item_count, rerror.code,
+                           rerror.message);
                     (*error_count)++;
                 }
                 print_json(item);
@@ -160,11 +163,11 @@ static int iterate_json(FILE *input, baton_session_t *session, const baton_json_
         (*item_count)++;
 
         json_decref(item); // JSON free
-    } // while
+    }                      // while
 
     if (exit_flag) {
-      status = exit_flag;
-      logmsg(WARN, "Exiting on signal with code %d", exit_flag);
+        status = exit_flag;
+        logmsg(WARN, "Exiting on signal with code %d", exit_flag);
     }
 
 finally:
@@ -194,21 +197,19 @@ int do_operation(FILE *input, const baton_json_op fn, operation_args_t *args) {
     baton_session_t *session = new_baton_session();
 
     if (!input) {
-      status = 1;
-      goto error;
+        status = 1;
+        goto error;
     }
 
     status = iterate_json(input, session, fn, args, &item_count, &error_count);
     if (status != 0) goto error;
 
     if (error_count > 0) {
-        logmsg(WARN, "Processed %d items with %d errors",
-               item_count, error_count);
-	    status = 1;
+        logmsg(WARN, "Processed %d items with %d errors", item_count, error_count);
+        status = 1;
     }
     else {
-        logmsg(DEBUG, "Processed %d items with %d errors",
-               item_count, error_count);
+        logmsg(DEBUG, "Processed %d items with %d errors", item_count, error_count);
     }
 
     free_baton_session(session);;
@@ -216,22 +217,25 @@ int do_operation(FILE *input, const baton_json_op fn, operation_args_t *args) {
     return status;
 
 error:
-    logmsg(ERROR, "Processed %d items with %d errors",
-           item_count, error_count);
+    logmsg(ERROR, "Processed %d items with %d errors", item_count, error_count);
 
     free_baton_session(session);
 
     return status;
 }
 
-json_t *baton_json_dispatch_op(baton_session_t *session, json_t *envelope,
-                               const operation_args_t *args, baton_error_t *error) {
+json_t* baton_json_dispatch_op(baton_session_t *session,
+                               json_t *envelope,
+                               const operation_args_t *args,
+                               baton_error_t *error) {
     json_t *result = NULL;
 
-    operation_args_t args_copy = { .flags       = args->flags,
-                                   .buffer_size = args->buffer_size,
-                                   .zone_name   = args->zone_name,
-                                   .path        = NULL };
+    operation_args_t args_copy = {
+        .flags = args->flags,
+        .buffer_size = args->buffer_size,
+        .zone_name = args->zone_name,
+        .path = NULL
+    };
 
     const char *op = get_operation(envelope, error);
     if (error->code != 0) goto finally;
@@ -246,26 +250,27 @@ json_t *baton_json_dispatch_op(baton_session_t *session, json_t *envelope,
 
     if (has_operation(envelope)) {
         const json_t *jargs = get_operation_args(envelope, error);
-        if (error->code != 0)  goto finally;
+        if (error->code != 0) goto finally;
 
         option_flags flags = args_copy.flags;
-        if (op_acl_p(jargs))                 flags = flags | PRINT_ACL;
-        if (op_avu_p(jargs))                 flags = flags | PRINT_AVU;
-        if (op_print_checksum_p(jargs))      flags = flags | PRINT_CHECKSUM;
-        if (op_calculate_checksum_p(jargs))  flags = flags | CALCULATE_CHECKSUM | PRINT_CHECKSUM;
-        if (op_verify_checksum_p(jargs))     flags = flags | VERIFY_CHECKSUM    | PRINT_CHECKSUM;
-        if (op_contents_p(jargs))            flags = flags | PRINT_CONTENTS;
-        if (op_replicate_p(jargs))           flags = flags | PRINT_REPLICATE;
-        if (op_redirect_to_server_p(jargs))  flags = flags | REDIRECT_TO_SERVER;
-        if (op_size_p(jargs))                flags = flags | PRINT_SIZE;
-        if (op_timestamp_p(jargs))           flags = flags | PRINT_TIMESTAMP;
-        if (op_raw_p(jargs))                 flags = flags | PRINT_RAW;
-        if (op_save_p(jargs))                flags = flags | SAVE_FILES;
-        if (op_recurse_p(jargs))             flags = flags | RECURSIVE;
-        if (op_force_p(jargs))               flags = flags | FORCE;
-        if (op_collection_p(jargs))          flags = flags | SEARCH_COLLECTIONS;
-        if (op_object_p(jargs))              flags = flags | SEARCH_OBJECTS;
-        if (op_single_server_p(jargs))       flags = flags | SINGLE_SERVER;
+        if (op_acl_p(jargs)) flags = flags | PRINT_ACL;
+        if (op_avu_p(jargs)) flags = flags | PRINT_AVU;
+        if (op_print_checksum_p(jargs)) flags = flags | PRINT_CHECKSUM;
+        if (op_calculate_checksum_p(jargs)) flags = flags | CALCULATE_CHECKSUM |
+            PRINT_CHECKSUM;
+        if (op_verify_checksum_p(jargs)) flags = flags | VERIFY_CHECKSUM | PRINT_CHECKSUM;
+        if (op_contents_p(jargs)) flags = flags | PRINT_CONTENTS;
+        if (op_replicate_p(jargs)) flags = flags | PRINT_REPLICATE;
+        if (op_redirect_to_server_p(jargs)) flags = flags | REDIRECT_TO_SERVER;
+        if (op_size_p(jargs)) flags = flags | PRINT_SIZE;
+        if (op_timestamp_p(jargs)) flags = flags | PRINT_TIMESTAMP;
+        if (op_raw_p(jargs)) flags = flags | PRINT_RAW;
+        if (op_save_p(jargs)) flags = flags | SAVE_FILES;
+        if (op_recurse_p(jargs)) flags = flags | RECURSIVE;
+        if (op_force_p(jargs)) flags = flags | FORCE;
+        if (op_collection_p(jargs)) flags = flags | SEARCH_COLLECTIONS;
+        if (op_object_p(jargs)) flags = flags | SEARCH_OBJECTS;
+        if (op_single_server_p(jargs)) flags = flags | SINGLE_SERVER;
         args_copy.flags = flags;
 
         if (has_operation(jargs)) {
@@ -280,9 +285,8 @@ json_t *baton_json_dispatch_op(baton_session_t *session, json_t *envelope,
                 args_copy.flags = flags | REMOVE_AVU;
             }
             else {
-                set_baton_error(error, -1,
-                                "Invalid baton operation argument '%s'", arg);
-              goto finally;
+                set_baton_error(error, -1, "Invalid baton operation argument '%s'", arg);
+                goto finally;
             }
         }
 
@@ -292,8 +296,7 @@ json_t *baton_json_dispatch_op(baton_session_t *session, json_t *envelope,
 
             char *tmp = copy_str(path, MAX_STR_LEN);
             if (!tmp) {
-                set_baton_error(error, errno, "Failed to copy string '%s'",
-                                path);
+                set_baton_error(error, errno, "Failed to copy string '%s'", path);
                 goto finally;
             }
 
@@ -330,8 +333,7 @@ json_t *baton_json_dispatch_op(baton_session_t *session, json_t *envelope,
     }
     else if (str_equals(op, JSON_PUT_OP, MAX_STR_LEN)) {
         if (args_copy.flags & SINGLE_SERVER) {
-            logmsg(DEBUG, "Single-server mode, falling back "
-                   "to operation 'write'");
+            logmsg(DEBUG, "Single-server mode, falling back " "to operation 'write'");
             result = baton_json_write_op(session, target, &args_copy, error);
         }
         else {
@@ -366,8 +368,10 @@ finally:
     return result;
 }
 
-json_t *baton_json_list_op(baton_session_t *session, json_t *target,
-                           const operation_args_t *args, baton_error_t *error) {
+json_t* baton_json_list_op(baton_session_t *session,
+                           json_t *target,
+                           const operation_args_t *args,
+                           baton_error_t *error) {
     json_t *result = NULL;
 
     char *path = json_to_path(target, error);
@@ -387,8 +391,10 @@ finally:
     return result;
 }
 
-json_t *baton_json_chmod_op(baton_session_t *session, json_t *target,
-                            const operation_args_t *args, baton_error_t *error) {
+json_t* baton_json_chmod_op(baton_session_t *session,
+                            json_t *target,
+                            const operation_args_t *args,
+                            baton_error_t *error) {
     json_t *result = NULL;
 
     char *path = json_to_path(target, error);
@@ -400,8 +406,8 @@ json_t *baton_json_chmod_op(baton_session_t *session, json_t *target,
 
     const json_t *perms = json_object_get(target, JSON_ACCESS_KEY);
     if (!json_is_array(perms)) {
-        set_baton_error(error, -1, "Permissions data for %s is not in "
-                        "a JSON array", path);
+        set_baton_error(error, -1, "Permissions data for %s is not in " "a JSON array",
+                        path);
         goto finally;
     }
 
@@ -416,8 +422,8 @@ json_t *baton_json_chmod_op(baton_session_t *session, json_t *target,
 
     result = json_deep_copy(target);
     if (!result) {
-        set_baton_error(error, -1, "Internal error: failed to deep-copy "
-                        "result for %s", path);
+        set_baton_error(error, -1, "Internal error: failed to deep-copy " "result for %s",
+                        path);
     }
 
 finally:
@@ -427,10 +433,12 @@ finally:
     return result;
 }
 
-json_t *baton_json_checksum_op(baton_session_t *session, json_t *target,
-                               const operation_args_t *args, baton_error_t *error) {
+json_t* baton_json_checksum_op(baton_session_t *session,
+                               json_t *target,
+                               const operation_args_t *args,
+                               baton_error_t *error) {
     json_t *result    = NULL;
-    char  *checksum   = NULL;
+    char *checksum    = NULL;
     json_t *jchecksum = NULL;
 
     char *path = json_to_path(target, error);
@@ -441,13 +449,12 @@ json_t *baton_json_checksum_op(baton_session_t *session, json_t *target,
     if (error->code != 0) goto finally;
 
     if (!represents_data_object(target)) {
-        set_baton_error(error, CAT_INVALID_ARGUMENT,
-                        "cannot checksum a non-data-object");
+        set_baton_error(error, CAT_INVALID_ARGUMENT, "cannot checksum a non-data-object");
         goto finally;
     }
 
     const option_flags flags = args->flags;
-    checksum = checksum_data_obj(session->conn, &rods_path, flags, error);
+    checksum                 = checksum_data_obj(session->conn, &rods_path, flags, error);
     if (error->code != 0) goto finally;
 
     jchecksum = checksum_to_json(checksum, error);
@@ -462,8 +469,8 @@ json_t *baton_json_checksum_op(baton_session_t *session, json_t *target,
 
     result = json_deep_copy(target);
     if (!result) {
-        set_baton_error(error, -1, "Internal error: failed to deep-copy "
-                        "result for %s", path);
+        set_baton_error(error, -1, "Internal error: failed to deep-copy " "result for %s",
+                        path);
     }
 
 finally:
@@ -474,8 +481,10 @@ finally:
     return result;
 }
 
-json_t *baton_json_metaquery_op(baton_session_t *session, json_t *target,
-                                const operation_args_t *args, baton_error_t *error) {
+json_t* baton_json_metaquery_op(baton_session_t *session,
+                                json_t *target,
+                                const operation_args_t *args,
+                                baton_error_t *error) {
     json_t *result = NULL;
 
     if (has_collection(target)) {
@@ -492,8 +501,10 @@ finally:
     return result;
 }
 
-json_t *baton_json_metamod_op(baton_session_t *session, json_t *target,
-                              const operation_args_t *args, baton_error_t *error) {
+json_t* baton_json_metamod_op(baton_session_t *session,
+                              json_t *target,
+                              const operation_args_t *args,
+                              baton_error_t *error) {
     json_t *result = NULL;
 
     char *path = json_to_path(target, error);
@@ -505,8 +516,7 @@ json_t *baton_json_metamod_op(baton_session_t *session, json_t *target,
 
     const json_t *avus = json_object_get(target, JSON_AVUS_KEY);
     if (!json_is_array(avus)) {
-        set_baton_error(error, -1, "AVU data for %s is not in a JSON array",
-                        path);
+        set_baton_error(error, -1, "AVU data for %s is not in a JSON array", path);
         goto finally;
     }
 
@@ -518,8 +528,8 @@ json_t *baton_json_metamod_op(baton_session_t *session, json_t *target,
         operation = META_REM;
     }
     else {
-        set_baton_error(error, -1, "No metadata operation was specified "
-                        " for '%s'", path);
+        set_baton_error(error, -1, "No metadata operation was specified " " for '%s'",
+                        path);
         goto finally;
     }
 
@@ -531,8 +541,8 @@ json_t *baton_json_metamod_op(baton_session_t *session, json_t *target,
 
     result = json_deep_copy(target);
     if (!result) {
-        set_baton_error(error, -1, "Internal error: failed to deep-copy "
-                        "result for %s", path);
+        set_baton_error(error, -1, "Internal error: failed to deep-copy " "result for %s",
+                        path);
     }
 
 finally:
@@ -542,8 +552,10 @@ finally:
     return result;
 }
 
-json_t *baton_json_get_op(baton_session_t *session, json_t *target,
-                          const operation_args_t *args, baton_error_t *error) {
+json_t* baton_json_get_op(baton_session_t *session,
+                          json_t *target,
+                          const operation_args_t *args,
+                          baton_error_t *error) {
     json_t *result = NULL;
     char *file     = NULL;
 
@@ -562,8 +574,7 @@ json_t *baton_json_get_op(baton_session_t *session, json_t *target,
     if (args->flags & SAVE_FILES) {
         result = json_deep_copy(target);
         if (!result) {
-            set_baton_error(error, errno,
-                            "Failed to allocate memory for result");
+            set_baton_error(error, errno, "Failed to allocate memory for result");
             goto finally;
         }
 
@@ -573,8 +584,7 @@ json_t *baton_json_get_op(baton_session_t *session, json_t *target,
     else if (args->flags & PRINT_RAW) {
         result = json_deep_copy(target);
         if (!result) {
-            set_baton_error(error, errno,
-                            "Failed to allocate memory for result");
+            set_baton_error(error, errno, "Failed to allocate memory for result");
             goto finally;
         }
         get_data_obj_stream(session, &rods_path, stdout, bsize, error);
@@ -592,8 +602,10 @@ finally:
     return result;
 }
 
-json_t *baton_json_write_op(baton_session_t *session, json_t *target,
-                            const operation_args_t *args, baton_error_t *error) {
+json_t* baton_json_write_op(baton_session_t *session,
+                            json_t *target,
+                            const operation_args_t *args,
+                            baton_error_t *error) {
     char *file = NULL;
     char *path = json_to_path(target, error);
     if (error->code != 0) goto finally;
@@ -616,8 +628,7 @@ json_t *baton_json_write_op(baton_session_t *session, json_t *target,
 
     FILE *in = fopen(file, "r");
     if (!in) {
-        set_baton_error(error, errno,
-                        "Failed to open '%s' for reading: error %d %s",
+        set_baton_error(error, errno, "Failed to open '%s' for reading: error %d %s",
                         file, errno, strerror(errno));
         goto finally;
     }
@@ -627,9 +638,8 @@ json_t *baton_json_write_op(baton_session_t *session, json_t *target,
 
     if (error->code != 0) goto finally;
     if (status != 0) {
-        set_baton_error(error, errno,
-                        "Failed to close '%s': error %d %s",
-                        file, errno, strerror(errno));
+        set_baton_error(error, errno, "Failed to close '%s': error %d %s", file, errno,
+                        strerror(errno));
     }
 
 finally:
@@ -640,8 +650,10 @@ finally:
     return target;
 }
 
-json_t *baton_json_put_op(baton_session_t *session, json_t *target,
-                          const operation_args_t *args, baton_error_t *error) {
+json_t* baton_json_put_op(baton_session_t *session,
+                          json_t *target,
+                          const operation_args_t *args,
+                          baton_error_t *error) {
     json_t *result     = NULL;
     char *file         = NULL;
     char *def_resource = NULL;
@@ -668,20 +680,19 @@ json_t *baton_json_put_op(baton_session_t *session, json_t *target,
         logmsg(DEBUG, "Using supplied checksum '%s'", checksum);
     }
 
-    const int status = put_data_obj(session, file, &rods_path, def_resource,
-                                    checksum, args->flags, error);
+    const int status = put_data_obj(session, file, &rods_path, def_resource, checksum,
+                                    args->flags, error);
     if (error->code != 0) goto finally;
     if (status != 0) {
-        set_baton_error(error, errno,
-                        "Failed to close '%s': error %d %s",
-                        file, errno, strerror(errno));
+        set_baton_error(error, errno, "Failed to close '%s': error %d %s", file, errno,
+                        strerror(errno));
         goto finally;
     }
 
     result = json_deep_copy(target);
     if (!result) {
-        set_baton_error(error, -1, "Internal error: failed to deep-copy "
-                        "result for %s", path);
+        set_baton_error(error, -1, "Internal error: failed to deep-copy " "result for %s",
+                        path);
     }
 
 finally:
@@ -693,8 +704,10 @@ finally:
     return result;
 }
 
-json_t *baton_json_move_op(baton_session_t *session, json_t *target,
-                           const operation_args_t *args, baton_error_t *error) {
+json_t* baton_json_move_op(baton_session_t *session,
+                           json_t *target,
+                           const operation_args_t *args,
+                           baton_error_t *error) {
     json_t *result = NULL;
 
     char *path = json_to_path(target, error);
@@ -712,8 +725,8 @@ json_t *baton_json_move_op(baton_session_t *session, json_t *target,
 
     result = json_deep_copy(target);
     if (!result) {
-        set_baton_error(error, -1, "Internal error: failed to deep-copy "
-                        "result for %s", path);
+        set_baton_error(error, -1, "Internal error: failed to deep-copy " "result for %s",
+                        path);
     }
 
 finally:
@@ -723,8 +736,9 @@ finally:
     return result;
 }
 
-json_t *baton_json_rm_op(baton_session_t *session,
-                         json_t *target, const operation_args_t *args,
+json_t* baton_json_rm_op(baton_session_t *session,
+                         json_t *target,
+                         const operation_args_t *args,
                          baton_error_t *error) {
     json_t *result = NULL;
 
@@ -736,8 +750,7 @@ json_t *baton_json_rm_op(baton_session_t *session,
     if (error->code != 0) goto finally;
 
     if (!represents_data_object(target)) {
-        set_baton_error(error, CAT_INVALID_ARGUMENT,
-                        "cannot remove a non-data-object");
+        set_baton_error(error, CAT_INVALID_ARGUMENT, "cannot remove a non-data-object");
         goto finally;
     }
 
@@ -747,8 +760,8 @@ json_t *baton_json_rm_op(baton_session_t *session,
 
     result = json_deep_copy(target);
     if (!result) {
-        set_baton_error(error, -1, "Internal error: failed to deep-copy "
-                        "result for %s", path);
+        set_baton_error(error, -1, "Internal error: failed to deep-copy " "result for %s",
+                        path);
     }
 
 finally:
@@ -758,8 +771,9 @@ finally:
     return result;
 }
 
-json_t *baton_json_mkcoll_op(baton_session_t *session,
-                             json_t *target, const operation_args_t *args,
+json_t* baton_json_mkcoll_op(baton_session_t *session,
+                             json_t *target,
+                             const operation_args_t *args,
                              baton_error_t *error) {
     json_t *result = NULL;
 
@@ -782,8 +796,8 @@ json_t *baton_json_mkcoll_op(baton_session_t *session,
 
     result = json_deep_copy(target);
     if (!result) {
-        set_baton_error(error, -1, "Internal error: failed to deep-copy "
-                        "result for %s", path);
+        set_baton_error(error, -1, "Internal error: failed to deep-copy " "result for %s",
+                        path);
     }
 
 finally:
@@ -793,8 +807,9 @@ finally:
     return result;
 }
 
-json_t *baton_json_rmcoll_op(baton_session_t *session,
-                             json_t *target, const operation_args_t *args,
+json_t* baton_json_rmcoll_op(baton_session_t *session,
+                             json_t *target,
+                             const operation_args_t *args,
                              baton_error_t *error) {
     json_t *result = NULL;
 
@@ -817,8 +832,8 @@ json_t *baton_json_rmcoll_op(baton_session_t *session,
 
     result = json_deep_copy(target);
     if (!result) {
-        set_baton_error(error, -1, "Internal error: failed to deep-copy "
-                        "result for %s", path);
+        set_baton_error(error, -1, "Internal error: failed to deep-copy " "result for %s",
+                        path);
     }
 
 finally:

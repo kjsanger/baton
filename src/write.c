@@ -23,7 +23,7 @@
 // from iRODS in iRODS 4.1.x https://github.com/irods/irods/issues/5731
 
 #if IRODS_VERSION_INTEGER <= (4*1000000 + 2*1000 + 9)
-int chksumLocFile( const char *fileName, char *chksumStr, const char* );
+int chksumLocFile(const char *fileName, char *chksumStr, const char *);
 #else
 #include <checksum.h>
 #endif
@@ -34,8 +34,9 @@ int chksumLocFile( const char *fileName, char *chksumStr, const char* );
 #include "utilities.h"
 
 
-
-int redirect_for_put(baton_session_t *session, dataObjInp_t *obj_put_in, baton_error_t *error) {
+int redirect_for_put(baton_session_t *session,
+                     dataObjInp_t *obj_put_in,
+                     baton_error_t *error) {
     if (!should_redirect_session(session, obj_put_in)) {
         return 0;
     }
@@ -53,10 +54,14 @@ int redirect_for_put(baton_session_t *session, dataObjInp_t *obj_put_in, baton_e
     return redirect_session(session, obj_put_in, error);
 }
 
-int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *rods_path,
-                 char *default_resource, char *checksum, const int flags,
+int put_data_obj(baton_session_t *session,
+                 const char *local_path,
+                 rodsPath_t *rods_path,
+                 char *default_resource,
+                 char *checksum,
+                 const int flags,
                  baton_error_t *error) {
-    char *tmpname  = NULL;
+    char *tmpname           = NULL;
     dataObjInp_t obj_put_in = {0};
     int status;
 
@@ -83,39 +88,36 @@ int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *r
     if (flags & VERIFY_CHECKSUM) {
         char chksum[NAME_LEN];
 
-	    if (checksum) {
-	        snprintf(chksum, NAME_LEN, "%s", checksum);
-	        logmsg(DEBUG, "Using supplied local checksum '%s' for '%s'",
-		       chksum, rods_path->outPath);
-	    }
-	    else {
-	        // The hash scheme must be defined for rcChksumLocFile, but if
-	        // it is zero length, rcChksumLocFile falls back to the value
-	        // in the client environment. There's no advantage in our
-	        // passing in a value that we have read from the client
-	        // environment.
-	        const char* default_scheme = "";
-	        status = chksumLocFile(tmpname, chksum, default_scheme);
-	        if (status != 0) {
-		        char *err_subname;
-		        const char *err_name = rodsErrorName(status, &err_subname);
-		        set_baton_error(error, status,
-				        "Failed to calculate a local checksum for: '%s' "
-				        "error %d %s", rods_path->outPath, status,
-				        err_name);
-		        goto error;
-	        }
-	        logmsg(DEBUG, "Calculated a local checksum '%s' for '%s'",
-                   chksum, rods_path->outPath);
+        if (checksum) {
+            snprintf(chksum, NAME_LEN, "%s", checksum);
+            logmsg(DEBUG, "Using supplied local checksum '%s' for '%s'", chksum,
+                   rods_path->outPath);
         }
-	
-        logmsg(DEBUG, "Server will verify '%s' after put",
-               rods_path->outPath);
+        else {
+            // The hash scheme must be defined for rcChksumLocFile, but if
+            // it is zero length, rcChksumLocFile falls back to the value
+            // in the client environment. There's no advantage in our
+            // passing in a value that we have read from the client
+            // environment.
+            const char *default_scheme = "";
+            status                     = chksumLocFile(tmpname, chksum, default_scheme);
+            if (status != 0) {
+                char *err_subname;
+                const char *err_name = rodsErrorName(status, &err_subname);
+                set_baton_error(error, status,
+                                "Failed to calculate a local checksum for: '%s' "
+                                "error %d %s", rods_path->outPath, status, err_name);
+                goto error;
+            }
+            logmsg(DEBUG, "Calculated a local checksum '%s' for '%s'", chksum,
+                   rods_path->outPath);
+        }
+
+        logmsg(DEBUG, "Server will verify '%s' after put", rods_path->outPath);
         addKeyVal(&obj_put_in.condInput, VERIFY_CHKSUM_KW, chksum);
     }
     else if (flags & CALCULATE_CHECKSUM) {
-        logmsg(DEBUG, "Server will calculate checksum for '%s'",
-               rods_path->outPath);
+        logmsg(DEBUG, "Server will calculate checksum for '%s'", rods_path->outPath);
         addKeyVal(&obj_put_in.condInput, REG_CHKSUM_KW, "");
     }
 
@@ -124,8 +126,7 @@ int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *r
         addKeyVal(&obj_put_in.condInput, LOCK_TYPE_KW, WRITE_LOCK_TYPE);
     }
     if (default_resource) {
-        logmsg(DEBUG, "Using '%s' as the default iRODS resource",
-               default_resource);
+        logmsg(DEBUG, "Using '%s' as the default iRODS resource", default_resource);
         addKeyVal(&obj_put_in.condInput, DEF_RESC_NAME_KW, default_resource);
     }
 
@@ -139,8 +140,7 @@ int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *r
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);
-        set_baton_error(error, status,
-                        "Failed to put data object: '%s' error %d %s",
+        set_baton_error(error, status, "Failed to put data object: '%s' error %d %s",
                         rods_path->outPath, status, err_name);
         goto error;
     }
@@ -156,8 +156,12 @@ error:
     return error->code;
 }
 
-size_t write_data_obj(baton_session_t *session, FILE *in, rodsPath_t *rods_path,
-                      const size_t buffer_size, const int flags, baton_error_t *error) {
+size_t write_data_obj(baton_session_t *session,
+                      FILE *in,
+                      rodsPath_t *rods_path,
+                      const size_t buffer_size,
+                      const int flags,
+                      baton_error_t *error) {
     data_obj_file_t *obj = NULL;
     char *buffer         = NULL;
     size_t num_read      = 0;
@@ -166,15 +170,13 @@ size_t write_data_obj(baton_session_t *session, FILE *in, rodsPath_t *rods_path,
     init_baton_error(error);
 
     if (buffer_size == 0) {
-        set_baton_error(error, -1, "Invalid buffer_size argument %u",
-                        buffer_size);
+        set_baton_error(error, -1, "Invalid buffer_size argument %u", buffer_size);
         goto finally;
     }
 
-    buffer = calloc(buffer_size +1, sizeof (char));
+    buffer = calloc(buffer_size + 1, sizeof(char));
     if (!buffer) {
-        logmsg(ERROR, "Failed to allocate memory: error %d %s",
-               errno, strerror(errno));
+        logmsg(ERROR, "Failed to allocate memory: error %d %s", errno, strerror(errno));
         goto finally;
     }
 
@@ -195,13 +197,13 @@ size_t write_data_obj(baton_session_t *session, FILE *in, rodsPath_t *rods_path,
 
         const size_t nw = write_chunk(session->conn, buffer, obj, nr, error);
         if (error->code != 0) {
-            logmsg(ERROR, "Failed to write to '%s': error %d %s",
-                   obj->path, error->code, error->message);
+            logmsg(ERROR, "Failed to write to '%s': error %d %s", obj->path, error->code,
+                   error->message);
             goto finally;
         }
         num_written += nw;
 
-        compat_MD5Update(context, (unsigned char*) buffer, nr, error);
+        compat_MD5Update(context, (unsigned char *) buffer, nr, error);
         if (error->code != 0) {
             logmsg(ERROR, error->message);
             goto finally;
@@ -220,50 +222,51 @@ size_t write_data_obj(baton_session_t *session, FILE *in, rodsPath_t *rods_path,
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);
-        set_baton_error(error, status,
-                        "Failed to close data object: '%s' error %d %s",
+        set_baton_error(error, status, "Failed to close data object: '%s' error %d %s",
                         obj->path, status, err_name);
         goto finally;
     }
 
     if (num_read != num_written) {
-        set_baton_error(error, -1, "Read %zu bytes but wrote %zu bytes ",
-                        "to '%s'", num_read, num_written, obj->path);
+        set_baton_error(error, -1, "Read %zu bytes but wrote %zu bytes ", "to '%s'",
+                        num_read, num_written, obj->path);
         goto finally;
     }
 
     if (!validate_md5_last_read(session->conn, obj)) {
-        logmsg(WARN, "Checksum mismatch for '%s' having MD5 %s on reading",
-               obj->path, obj->md5_last_read);
+        logmsg(WARN, "Checksum mismatch for '%s' having MD5 %s on reading", obj->path,
+               obj->md5_last_read);
     }
 
-    logmsg(NOTICE, "Wrote %zu bytes to '%s' having MD5 %s",
-           num_written, obj->path, obj->md5_last_read);
+    logmsg(NOTICE, "Wrote %zu bytes to '%s' having MD5 %s", num_written, obj->path,
+           obj->md5_last_read);
 
 finally:
-    if (obj)    free_data_obj(obj);
+    if (obj) free_data_obj(obj);
     if (buffer) free(buffer);
 
     return num_written;
 }
 
-size_t write_chunk(rcComm_t *conn, char *buffer, const data_obj_file_t *data_obj,
-                   const size_t len, baton_error_t *error) {
+size_t write_chunk(rcComm_t *conn,
+                   char *buffer,
+                   const data_obj_file_t *data_obj,
+                   const size_t len,
+                   baton_error_t *error) {
     init_baton_error(error);
 
     data_obj->open_obj->len = len;
 
     bytesBuf_t obj_write_in = {0};
-    obj_write_in.buf = buffer;
-    obj_write_in.len = len;
+    obj_write_in.buf        = buffer;
+    obj_write_in.len        = len;
 
     const int num_written = rcDataObjWrite(conn, data_obj->open_obj, &obj_write_in);
     if (num_written < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(num_written, &err_subname);
-        set_baton_error(error, num_written,
-                        "Failed to write %zu bytes to '%s': %s",
-                        len, data_obj->path, err_name);
+        set_baton_error(error, num_written, "Failed to write %zu bytes to '%s': %s", len,
+                        data_obj->path, err_name);
         goto finally;
     }
 
@@ -273,15 +276,16 @@ finally:
     return num_written;
 }
 
-int create_collection(rcComm_t *conn, rodsPath_t *rods_path, const int flags,
+int create_collection(rcComm_t *conn,
+                      rodsPath_t *rods_path,
+                      const int flags,
                       baton_error_t *error) {
     init_baton_error(error);
     collInp_t coll_create_in = {0};
 
     snprintf(coll_create_in.collName, MAX_NAME_LEN, "%s", rods_path->outPath);
     if (flags & RECURSIVE) {
-        logmsg(DEBUG, "Creating collection '%s' recursively",
-               rods_path->outPath);
+        logmsg(DEBUG, "Creating collection '%s' recursively", rods_path->outPath);
         addKeyVal(&coll_create_in.condInput, RECURSIVE_OPR__KW, "");
     }
 
@@ -297,7 +301,9 @@ int create_collection(rcComm_t *conn, rodsPath_t *rods_path, const int flags,
     return error->code;
 }
 
-int remove_data_object(rcComm_t *conn, rodsPath_t *rods_path, const int flags,
+int remove_data_object(rcComm_t *conn,
+                       rodsPath_t *rods_path,
+                       const int flags,
                        baton_error_t *error) {
     init_baton_error(error);
     dataObjInp_t obj_rm_in = {0};
@@ -306,8 +312,10 @@ int remove_data_object(rcComm_t *conn, rodsPath_t *rods_path, const int flags,
     snprintf(obj_rm_in.objPath, MAX_NAME_LEN, "%s", rods_path->outPath);
 
     if (flags & FORCE) {
-        logmsg(WARN, "Forced removal of '%s' is the default; ignoring redundant force request",
-               rods_path->outPath);
+        logmsg(
+            WARN,
+            "Forced removal of '%s' is the default; ignoring redundant force request",
+            rods_path->outPath);
     }
     addKeyVal(&obj_rm_in.condInput, FORCE_FLAG_KW, "");
 
@@ -315,15 +323,16 @@ int remove_data_object(rcComm_t *conn, rodsPath_t *rods_path, const int flags,
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);
-        set_baton_error(error, status,
-                        "Failed to remove data object: '%s' error %d %s",
+        set_baton_error(error, status, "Failed to remove data object: '%s' error %d %s",
                         rods_path->outPath, status, err_name);
     }
 
     return error->code;
 }
 
-int remove_collection(rcComm_t *conn, rodsPath_t *rods_path, const int flags,
+int remove_collection(rcComm_t *conn,
+                      rodsPath_t *rods_path,
+                      const int flags,
                       baton_error_t *error) {
     init_baton_error(error);
     collInp_t col_rm_in = {0};
@@ -341,12 +350,11 @@ int remove_collection(rcComm_t *conn, rodsPath_t *rods_path, const int flags,
     }
 
     const int verbose = 0;
-    const int status = rcRmColl(conn, &col_rm_in, verbose);
+    const int status  = rcRmColl(conn, &col_rm_in, verbose);
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);
-        set_baton_error(error, status,
-                        "Failed to remove collection: '%s' error %d %s",
+        set_baton_error(error, status, "Failed to remove collection: '%s' error %d %s",
                         rods_path->outPath, status, err_name);
     }
 

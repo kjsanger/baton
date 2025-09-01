@@ -61,49 +61,49 @@ typedef enum {
 
 typedef enum {
     /** Print AVUs on collections and data objects */
-    PRINT_AVU          = 1 << 0,
+    PRINT_AVU = 1 << 0,
     /** Print ACLs on collections and data objects */
-    PRINT_ACL          = 1 << 1,
+    PRINT_ACL = 1 << 1,
     /** Print the contents of collections */
-    PRINT_CONTENTS     = 1 << 2,
+    PRINT_CONTENTS = 1 << 2,
     /** Print timestamps on collections and data objects */
-    PRINT_TIMESTAMP    = 1 << 3,
+    PRINT_TIMESTAMP = 1 << 3,
     /** Print file sizes for data objects */
-    PRINT_SIZE         = 1 << 4,
+    PRINT_SIZE = 1 << 4,
     /** Pretty-print JSON */
-    PRINT_PRETTY       = 1 << 5,
+    PRINT_PRETTY = 1 << 5,
     /** Print raw output */
-    PRINT_RAW          = 1 << 6,
+    PRINT_RAW = 1 << 6,
     /** Search collection AVUs */
     SEARCH_COLLECTIONS = 1 << 7,
     /** Search data object AVUs */
-    SEARCH_OBJECTS     = 1 << 8,
+    SEARCH_OBJECTS = 1 << 8,
     /** Unsafely resolve relative paths */
-    UNSAFE_RESOLVE     = 1 << 9,
+    UNSAFE_RESOLVE = 1 << 9,
     /** Print replicate details for data objects */
-    PRINT_REPLICATE    = 1 << 10,
+    PRINT_REPLICATE = 1 << 10,
     /** Print checksums for data objects */
-    PRINT_CHECKSUM     = 1 << 11,
+    PRINT_CHECKSUM = 1 << 11,
     /** Calculate checksums for data objects */
     CALCULATE_CHECKSUM = 1 << 12,
     /** Verify checksums for data objects */
-    VERIFY_CHECKSUM    = 1 << 13,
+    VERIFY_CHECKSUM = 1 << 13,
     /** Add an AVU */
-    ADD_AVU            = 1 << 14,
+    ADD_AVU = 1 << 14,
     /** Remove an AVU */
-    REMOVE_AVU         = 1 << 15,
+    REMOVE_AVU = 1 << 15,
     /** Recursive operation on collections */
-    RECURSIVE          = 1 << 16,
+    RECURSIVE = 1 << 16,
     /** Save files */
-    SAVE_FILES         = 1 << 17,
+    SAVE_FILES = 1 << 17,
     /** Flush output */
-    FLUSH              = 1 << 18,
+    FLUSH = 1 << 18,
     /** Force an operation */
-    FORCE              = 1 << 19,
+    FORCE = 1 << 19,
     /** Avoid any operations that contact servers other than rodshost */
-    SINGLE_SERVER      = 1 << 20,
+    SINGLE_SERVER = 1 << 20,
     /** Use advisory write lock on server */
-    WRITE_LOCK         = 1 << 21,
+    WRITE_LOCK = 1 << 21,
     /** Redirect to a resource server */
     REDIRECT_TO_SERVER = 1 << 22,
 } option_flags;
@@ -148,7 +148,7 @@ typedef struct baton_session {
  * @return A pointer to a newly created baton session structure.
  *         Returns NULL if the session could not be created.
  */
-baton_session_t *new_baton_session(void);
+baton_session_t* new_baton_session(void);
 
 /**
  * Frees the memory allocated for a baton session.
@@ -175,7 +175,9 @@ int should_redirect_session(baton_session_t *session, dataObjInp_t *obj_op_in);
  * @param[out] error An error report struct.
  * @return 0 on success.
  */
-int redirect_session(baton_session_t *session, dataObjInp_t *obj_op_in, baton_error_t *error);
+int redirect_session(baton_session_t *session,
+                     dataObjInp_t *obj_op_in,
+                     baton_error_t *error);
 
 /**
  * Test that a connection can be made to the server.
@@ -242,7 +244,9 @@ int init_rods_path(rodsPath_t *rods_path, const char *in_path);
  * @return 0 on success, iRODS error code on failure.
  */
 int resolve_rods_path(baton_session_t *session,
-                      rodsPath_t *rods_path, const char *in_path, option_flags flags,
+                      rodsPath_t *rods_path,
+                      const char *in_path,
+                      option_flags flags,
                       baton_error_t *error);
 
 /**
@@ -256,14 +260,20 @@ int resolve_rods_path(baton_session_t *session,
  *
  * @return 0 on success, iRODS error code on failure.
  */
-int set_rods_path(rcComm_t *conn, rodsPath_t *rods_path, char *path,
+int set_rods_path(rcComm_t *conn,
+                  rodsPath_t *rods_path,
+                  char *path,
                   baton_error_t *error);
 
-int move_rods_path(rcComm_t *conn, rodsPath_t *rods_path, char *new_path,
+int move_rods_path(rcComm_t *conn,
+                   rodsPath_t *rods_path,
+                   char *new_path,
                    baton_error_t *error);
 
-int resolve_collection(baton_session_t *session, json_t *object,
-                       option_flags flags, baton_error_t *error);
+int resolve_collection(baton_session_t *session,
+                       json_t *object,
+                       option_flags flags,
+                       baton_error_t *error);
 
 /**
  * Search metadata to find matching data objects and collections.
@@ -281,8 +291,11 @@ int resolve_collection(baton_session_t *session, json_t *object,
  *
  * @return A newly constructed JSON array of JSON result objects.
  */
-json_t *search_metadata(rcComm_t *conn, json_t *query, char *zone_name,
-                        option_flags flags, baton_error_t *error);
+json_t* search_metadata(rcComm_t *conn,
+                        json_t *query,
+                        char *zone_name,
+                        option_flags flags,
+                        baton_error_t *error);
 
 /**
  * Perform a specific query (SQL must have been installed on iRODS server by an
@@ -298,7 +311,9 @@ json_t *search_metadata(rcComm_t *conn, json_t *query, char *zone_name,
  *
  * @return A newly constructed JSON array of JSON result objects.
  */
-json_t *search_specific(rcComm_t *conn, const json_t *query, char *zone_name,
+json_t* search_specific(rcComm_t *conn,
+                        const json_t *query,
+                        char *zone_name,
                         baton_error_t *error);
 
 /**
@@ -314,9 +329,12 @@ json_t *search_specific(rcComm_t *conn, const json_t *query, char *zone_name,
  *
  * @return 0 on success, iRODS error code on failure.
  */
-int modify_permissions(rcComm_t *conn, rodsPath_t *rods_path,
-                       recursive_op recurse, char *user_with_zone,
-                       char *perms,  baton_error_t *error);
+int modify_permissions(rcComm_t *conn,
+                       rodsPath_t *rods_path,
+                       recursive_op recurse,
+                       char *user_with_zone,
+                       char *perms,
+                       baton_error_t *error);
 
 /**
  * Modify the access control list of a resolved iRODS path.  The
@@ -331,8 +349,10 @@ int modify_permissions(rcComm_t *conn, rodsPath_t *rods_path,
  *
  * @return 0 on success, iRODS error code on failure.
  */
-int modify_json_permissions(rcComm_t *conn, rodsPath_t *rods_path,
-                            recursive_op recurse, const json_t *acl,
+int modify_json_permissions(rcComm_t *conn,
+                            rodsPath_t *rods_path,
+                            recursive_op recurse,
+                            const json_t *acl,
                             baton_error_t *error);
 
 /**
@@ -348,8 +368,12 @@ int modify_json_permissions(rcComm_t *conn, rodsPath_t *rods_path,
  *
  * @return 0 on success, iRODS error code on failure.
  */
-int modify_metadata(rcComm_t *conn, rodsPath_t *rods_path, metadata_op op,
-                    char *attr_name, char *attr_value, char *attr_units,
+int modify_metadata(rcComm_t *conn,
+                    rodsPath_t *rods_path,
+                    metadata_op op,
+                    char *attr_name,
+                    char *attr_value,
+                    char *attr_units,
                     baton_error_t *error);
 
 /**
@@ -366,8 +390,10 @@ int modify_metadata(rcComm_t *conn, rodsPath_t *rods_path, metadata_op op,
  * @return 0 on success, iRODS error code on failure.
  * @ref modify_metadata
  */
-int modify_json_metadata(rcComm_t *conn, rodsPath_t *rods_path,
-                         metadata_op op, const json_t *avu,
+int modify_json_metadata(rcComm_t *conn,
+                         rodsPath_t *rods_path,
+                         metadata_op op,
+                         const json_t *avu,
                          baton_error_t *error);
 
 /**
@@ -386,9 +412,11 @@ int modify_json_metadata(rcComm_t *conn, rodsPath_t *rods_path,
  * @return 0 on success, iRODS error code on failure.
  * @ref modify_metadata
  */
-int maybe_modify_json_metadata(rcComm_t *conn, rodsPath_t *rods_path,
+int maybe_modify_json_metadata(rcComm_t *conn,
+                               rodsPath_t *rods_path,
                                metadata_op op,
-                               const json_t *candidate_avus, json_t *reference_avus,
+                               const json_t *candidate_avus,
+                               json_t *reference_avus,
                                baton_error_t *error);
 
 #endif // _BATON_H

@@ -51,10 +51,10 @@ typedef struct operation_args {
  * @return json_t* on success, which may be NULL for side-effect-only operations.
  * Returns NULL on failure with details in 'error'.
  */
-typedef json_t *(*baton_json_op) (baton_session_t *session,
-                                  json_t *target,
-                                  const operation_args_t *args,
-                                  baton_error_t *error);
+typedef json_t*(*baton_json_op)(baton_session_t *session,
+                                json_t *target,
+                                const operation_args_t *args,
+                                baton_error_t *error);
 
 /**
  * Process a stream of baton JSON documents by executing the specifed
@@ -69,56 +69,69 @@ typedef json_t *(*baton_json_op) (baton_session_t *session,
  */
 int do_operation(FILE *input, baton_json_op fn, operation_args_t *args);
 
-json_t *baton_json_dispatch_op(baton_session_t *session,
-                               json_t *target, const operation_args_t *args,
+json_t* baton_json_dispatch_op(baton_session_t *session,
+                               json_t *target,
+                               const operation_args_t *args,
                                baton_error_t *error);
 
-json_t *baton_json_list_op(baton_session_t *session,
-                           json_t *target, const operation_args_t *args,
+json_t* baton_json_list_op(baton_session_t *session,
+                           json_t *target,
+                           const operation_args_t *args,
                            baton_error_t *error);
 
-json_t *baton_json_chmod_op(baton_session_t *session,
-                            json_t *target, const operation_args_t *args,
+json_t* baton_json_chmod_op(baton_session_t *session,
+                            json_t *target,
+                            const operation_args_t *args,
                             baton_error_t *error);
 
-json_t *baton_json_checksum_op(baton_session_t *session,
-                               json_t *target, const operation_args_t *args,
+json_t* baton_json_checksum_op(baton_session_t *session,
+                               json_t *target,
+                               const operation_args_t *args,
                                baton_error_t *error);
 
-json_t *baton_json_metaquery_op(baton_session_t *session,
-                                json_t *target, const operation_args_t *args,
+json_t* baton_json_metaquery_op(baton_session_t *session,
+                                json_t *target,
+                                const operation_args_t *args,
                                 baton_error_t *error);
 
-json_t *baton_json_metamod_op(baton_session_t *session,
-                              json_t *target, const operation_args_t *args,
+json_t* baton_json_metamod_op(baton_session_t *session,
+                              json_t *target,
+                              const operation_args_t *args,
                               baton_error_t *error);
 
-json_t *baton_json_get_op(baton_session_t *session,
-                          json_t *target, const operation_args_t *args,
+json_t* baton_json_get_op(baton_session_t *session,
+                          json_t *target,
+                          const operation_args_t *args,
                           baton_error_t *error);
 
-json_t *baton_json_put_op(baton_session_t *session,
-                          json_t *target, const operation_args_t *args,
+json_t* baton_json_put_op(baton_session_t *session,
+                          json_t *target,
+                          const operation_args_t *args,
                           baton_error_t *error);
 
-json_t *baton_json_write_op(baton_session_t *session,
-                            json_t *target, const operation_args_t *args,
+json_t* baton_json_write_op(baton_session_t *session,
+                            json_t *target,
+                            const operation_args_t *args,
                             baton_error_t *error);
 
-json_t *baton_json_move_op(baton_session_t *session,
-                           json_t *target, const operation_args_t *args,
+json_t* baton_json_move_op(baton_session_t *session,
+                           json_t *target,
+                           const operation_args_t *args,
                            baton_error_t *error);
 
-json_t *baton_json_rm_op(baton_session_t *session,
-                         json_t *target, const operation_args_t *args,
+json_t* baton_json_rm_op(baton_session_t *session,
+                         json_t *target,
+                         const operation_args_t *args,
                          baton_error_t *error);
 
-json_t *baton_json_mkcoll_op(baton_session_t *session,
-                             json_t *target, const operation_args_t *args,
+json_t* baton_json_mkcoll_op(baton_session_t *session,
+                             json_t *target,
+                             const operation_args_t *args,
                              baton_error_t *error);
 
-json_t *baton_json_rmcoll_op(baton_session_t *session,
-                             json_t *target, const operation_args_t *args,
+json_t* baton_json_rmcoll_op(baton_session_t *session,
+                             json_t *target,
+                             const operation_args_t *args,
                              baton_error_t *error);
 
 

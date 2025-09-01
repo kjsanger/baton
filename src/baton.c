@@ -96,6 +96,62 @@ void free_baton_session(baton_session_t *session) {
     }
 }
 
+int should_redirect_session(baton_session_t *session, dataObjInp_t *obj_op_in) {
+    if (session->redirect_host) {
+        logmsg(DEBUG, "Not redirecting for '%s' as host redirection is already in effect",
+            obj_op_in->objPath);
+        return 1;
+    }
+
+    if (obj_op_in->dataSize < REDIRECT_SIZE_THRESHOLD) {
+        logmsg(DEBUG, "Not redirecting for '%s' as it is smaller than "
+                      "the redirect threshold (%d < %d)",
+               obj_op_in->objPath, obj_op_in->dataSize, REDIRECT_SIZE_THRESHOLD);
+        return 1;
+    }
+
+    return 0;
+}
+
+int redirect_session(baton_session_t *session, dataObjInp_t *obj_op_in, baton_error_t *error) {
+    if (session->redirect_host == NULL) {
+        logmsg(DEBUG, "No host redirection from '%s' available for '%s'",
+               session->local_host, obj_op_in->objPath);
+        return 0;
+    }
+
+    // iRODS is very sensitive to host naming and not good at detecting if a hostname
+    // routes to itself. It doesn't handle "localhost" as a hostname, so if we want to
+    // support that (which we do, for test instances), we need to check for that name
+    // ourselves and avoid redirecting in that case.
+    if (strcmp(session->redirect_host, "localhost") == 0) {
+        logmsg(DEBUG, "Not redirecting from '%s' to put '%s' as it is localhost",
+               session->local_host, obj_op_in->objPath);
+        return 0;
+    }
+
+    if (strcmp(session->redirect_host, session->local_host) == 0) {
+        logmsg(DEBUG, "No host redirection from '%s'  to '%s' required for '%s'",
+               session->local_host, session->redirect_host, obj_op_in->objPath);
+        return 0;
+    }
+
+    logmsg(INFO, "Redirecting from '%s' to '%s' for '%s",
+           session->local_host, session->redirect_host, obj_op_in->objPath);
+
+    baton_disconnect(session);
+
+    int status = baton_reconnect(session);
+    if (status < 0) {
+        set_baton_error(error, status,
+                        "Failed to reconnect to '%s' for '%s' error %d",
+                        session->redirect_host, obj_op_in->objPath, status);
+    }
+
+    return status;
+}
+
+
 int is_irods_available(void) {
     baton_session_t *session = new_baton_session();
 

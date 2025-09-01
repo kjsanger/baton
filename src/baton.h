@@ -159,6 +159,25 @@ baton_session_t *new_baton_session(void);
 void free_baton_session(baton_session_t *session);
 
 /**
+ * Return true if the session should be redirected to a resouce server, if that is possible.
+ *
+ * @param[in] session The session that may be redirected.
+ * @param obj_op_in[in] The operation to be done.
+ * @return 0 if redirection should be done.
+ */
+int should_redirect_session(baton_session_t *session, dataObjInp_t *obj_op_in);
+
+/**
+ * Redirect the session, if possible (which it may not be).
+ *
+ * @param[in] session The session that may be redirected.
+ * @param[in] obj_op_in The operation to be done.
+ * @param[out] error An error report struct.
+ * @return 0 on success.
+ */
+int redirect_session(baton_session_t *session, dataObjInp_t *obj_op_in, baton_error_t *error);
+
+/**
  * Test that a connection can be made to the server.
  *
  * @return 1 on success, 0 on failure.
@@ -231,7 +250,7 @@ int resolve_rods_path(baton_session_t *session,
  * inPath and outPath and then resolving it on the server. The path is not
  * parsed, so must be derived from an existing parsed path.
  *
- * @param[in]  session      An open baton session.
+ * @param[in]  conn      An open iRODS connection.
  * @param[in]  path      A string representing an unresolved iRODS path.
  * @param[out] error     An error report struct.
  *
@@ -290,7 +309,7 @@ json_t *search_specific(rcComm_t *conn, const json_t *query, char *zone_name,
  * @param[in]     recurse    Recurse into collections, one of RECURSE,
                              NO_RECURSE.
  * @param[in] user_with_zone The user name with zone i.e <user name>#<zone name>.
- * @param[in]     perms      An iRODS access control mode (read, write etc.)
+ * @param[in]     perms      An iRODS access control mode (read, write, etc.)
  * @param[in,out] error      An error report struct.
  *
  * @return 0 on success, iRODS error code on failure.

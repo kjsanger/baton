@@ -33,66 +33,24 @@ int chksumLocFile( const char *fileName, char *chksumStr, const char* );
 #include "write.h"
 #include "utilities.h"
 
-int redirect_for_put(baton_session_t *session, dataObjInp_t *obj_open_in, baton_error_t *error) {
-    int status = 0;
 
-    if (!session->redirect_host) {
-        logmsg(DEBUG, "Checking for host redirection from '%s' to put '%s'",
-            session->local_host, obj_open_in->objPath);
 
-        if (obj_open_in->dataSize < REDIRECT_SIZE_THRESHOLD) {
-            logmsg(DEBUG, "Not redirecting to put '%s' as it is smaller than "
-                          "the redirect threshold (%d < %d)",
-                   obj_open_in->objPath, obj_open_in->dataSize, REDIRECT_SIZE_THRESHOLD);
-            return status;
-        }
-
-        status = rcGetHostForPut(session->conn, obj_open_in, &session->redirect_host);
-        if (status < 0) {
-            char *err_subname;
-            const char *err_name = rodsErrorName(status, &err_subname);
-            set_baton_error(error, status,
-                            "Failed to choose host to put data object: '%s' error %d %s",
-                            obj_open_in->objPath, status, err_name);
-            return status;
-        }
-
-        if (session->redirect_host == NULL) {
-            logmsg(DEBUG, "No host redirection from '%s' available for '%s'",
-                   session->local_host, obj_open_in->objPath);
-            return status;
-        }
-
-        // iRODS is very sensitive to host naming and not good at detecting if a hostname
-        // routes to itself. It doesn't handle "localhost" as a hostname, so if we want to
-        // support that (which we do, for test instances), we need to check for that name
-        // ourselves and avoid redirecting in that case.
-        if (strcmp(session->redirect_host, "localhost") == 0) {
-            logmsg(DEBUG, "Not redirecting from '%s' to put '%s' as it is localhost",
-                   session->local_host, obj_open_in->objPath);
-            return status;
-        }
-
-        if (strcmp(session->redirect_host, session->local_host) == 0) {
-            logmsg(DEBUG, "No host redirection from '%s'  to '%s' required for '%s'",
-                   session->local_host, session->redirect_host, obj_open_in->objPath);
-            return status;
-        }
-
-        logmsg(INFO, "Redirecting from '%s' to '%s' to put '%s",
-               session->local_host, session->redirect_host, obj_open_in->objPath);
-        baton_disconnect(session);
-
-        status = baton_reconnect(session);
-        if (status < 0) {
-            set_baton_error(error, status,
-                            "Failed to reconnect to put '%s' error %d",
-                            obj_open_in->objPath, status);
-            return status;
-        }
+int redirect_for_put(baton_session_t *session, dataObjInp_t *obj_put_in, baton_error_t *error) {
+    if (!should_redirect_session(session, obj_put_in)) {
+        return 0;
     }
 
-    return status;
+    int status = rcGetHostForPut(session->conn, obj_put_in, &session->redirect_host);
+    if (status < 0) {
+        char *err_subname;
+        const char *err_name = rodsErrorName(status, &err_subname);
+        set_baton_error(error, status,
+                        "Failed to choose host to put data object: '%s' error %d %s",
+                        obj_put_in->objPath, status, err_name);
+        return status;
+    }
+
+    return redirect_session(session, obj_put_in, error);
 }
 
 int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *rods_path,
@@ -113,7 +71,6 @@ int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *r
     obj_put_in.openFlags  = O_WRONLY;
     obj_put_in.createMode = 0750;
     obj_put_in.dataSize   = getFileSize(tmpname);
-
     logmsg(DEBUG, "Size of '%s' is %d", obj_put_in.objPath, obj_put_in.dataSize);
 
     if ((flags & VERIFY_CHECKSUM) && (flags & CALCULATE_CHECKSUM)) {
@@ -175,7 +132,8 @@ int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *r
     // Always force put over any existing data to make puts idempotent.
     addKeyVal(&obj_put_in.condInput, FORCE_FLAG_KW, "");
 
-    if (redirect_for_put(session, &obj_put_in, error)) goto error;
+    redirect_for_put(session, &obj_put_in, error);
+    if (error->code != 0) goto error;
 
     status = rcDataObjPut(session->conn, &obj_put_in, tmpname);
     if (status < 0) {

@@ -325,7 +325,8 @@ Options
 
   Redirect to the best resource server for the get operation. This option allows
   baton-get to connect directly to a resource server chosen by iRODS. This may
-  improve performance.
+  improve performance. Redirection may occur only for data objects greater than
+  32 MiB in size.
 
 .. program:: baton-get
 .. option:: --save
@@ -434,7 +435,7 @@ Options
 
   Redirect to the best resource server for the get operation. This option allows
   baton-put to connect directly to a resource server chosen by iRODS. This may improve
-  put performance.
+  performance. Redirection may occur only for data objects greater than 32 MiB in size.
 
 .. program:: baton-put
 .. option:: --silent

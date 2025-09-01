@@ -509,7 +509,7 @@ int get_data_obj_file(baton_session_t *session, rodsPath_t *rods_path, const cha
 
     rodsObjStat_t stat = {0};
     rodsObjStat_t *stat_ptr = &stat;
-    status = rcObjStat( session->conn, &obj_get_in, &stat_ptr);
+    status = rcObjStat(session->conn, &obj_get_in, &stat_ptr);
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);
@@ -518,7 +518,9 @@ int get_data_obj_file(baton_session_t *session, rodsPath_t *rods_path, const cha
                         rods_path->outPath, local_path, status, err_name);
         goto error;
     }
-    obj_get_in.dataSize = stat.objSize;
+    obj_get_in.dataSize = stat_ptr->objSize;
+
+    logmsg(DEBUG, "Size of '%s' is %d", obj_get_in.objPath, obj_get_in.dataSize);
 
     if (redirect_for_get(session, &obj_get_in, error)) goto error;
 

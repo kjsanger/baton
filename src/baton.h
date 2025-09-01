@@ -33,6 +33,8 @@
 
 #define DEFAULT_MAX_CONNECT_TIME 600
 
+#define REDIRECT_SIZE_THRESHOLD (1024 * 1024 * 32)
+
 #define META_ADD_NAME "add"
 #define META_REM_NAME "rm"
 

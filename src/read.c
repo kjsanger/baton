@@ -73,6 +73,13 @@ int redirect_for_get(baton_session_t *session, dataObjInp_t *obj_open_in, baton_
         logmsg(DEBUG, "Checking for host redirection from '%s' to get '%s'",
             session->local_host, obj_open_in->objPath);
 
+        if (obj_open_in->dataSize < REDIRECT_SIZE_THRESHOLD) {
+            logmsg(DEBUG, "Not redirecting to get '%s' as it is smaller than "
+                          "the redirect threshold (%d < %d)",
+                   obj_open_in->objPath, obj_open_in->dataSize, REDIRECT_SIZE_THRESHOLD);
+            return status;
+        }
+
         status = rcGetHostForGet(session->conn, obj_open_in, &session->redirect_host);
         if (status < 0) {
             char *err_subname;

@@ -40,6 +40,13 @@ int redirect_for_put(baton_session_t *session, dataObjInp_t *obj_open_in, baton_
         logmsg(DEBUG, "Checking for host redirection from '%s' to put '%s'",
             session->local_host, obj_open_in->objPath);
 
+        if (obj_open_in->dataSize < REDIRECT_SIZE_THRESHOLD) {
+            logmsg(DEBUG, "Not redirecting to put '%s' as it is smaller than "
+                          "the redirect threshold (%d < %d)",
+                   obj_open_in->objPath, obj_open_in->dataSize, REDIRECT_SIZE_THRESHOLD);
+            return status;
+        }
+
         status = rcGetHostForPut(session->conn, obj_open_in, &session->redirect_host);
         if (status < 0) {
             char *err_subname;
@@ -52,7 +59,7 @@ int redirect_for_put(baton_session_t *session, dataObjInp_t *obj_open_in, baton_
 
         if (session->redirect_host == NULL) {
             logmsg(DEBUG, "No host redirection from '%s' available for '%s'",
-                session->local_host, obj_open_in->objPath);
+                   session->local_host, obj_open_in->objPath);
             return status;
         }
 
@@ -62,13 +69,13 @@ int redirect_for_put(baton_session_t *session, dataObjInp_t *obj_open_in, baton_
         // ourselves and avoid redirecting in that case.
         if (strcmp(session->redirect_host, "localhost") == 0) {
             logmsg(DEBUG, "Not redirecting from '%s' to put '%s' as it is localhost",
-                session->local_host, obj_open_in->objPath);
+                   session->local_host, obj_open_in->objPath);
             return status;
         }
 
         if (strcmp(session->redirect_host, session->local_host) == 0) {
             logmsg(DEBUG, "No host redirection from '%s'  to '%s' required for '%s'",
-                session->local_host, session->redirect_host, obj_open_in->objPath);
+                   session->local_host, session->redirect_host, obj_open_in->objPath);
             return status;
         }
 
@@ -105,11 +112,7 @@ int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *r
 
     obj_open_in.openFlags  = O_WRONLY;
     obj_open_in.createMode = 0750;
-
-    // Set to 0 when we don't know the size. However, this means that
-    // rcDataObjPut will check for a local file on disk to get the
-    // size.
-    obj_open_in.dataSize   = 0;
+    obj_open_in.dataSize   = getFileSize(tmpname);
 
     if ((flags & VERIFY_CHECKSUM) && (flags & CALCULATE_CHECKSUM)) {
         set_baton_error(error, USER_INPUT_OPTION_ERR,

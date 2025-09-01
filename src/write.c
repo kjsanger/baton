@@ -99,20 +99,22 @@ int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *r
                  char *default_resource, char *checksum, const int flags,
                  baton_error_t *error) {
     char *tmpname  = NULL;
-    dataObjInp_t obj_open_in = {0};
+    dataObjInp_t obj_put_in = {0};
     int status;
 
     init_baton_error(error);
 
     logmsg(DEBUG, "Opening data object '%s'", rods_path->outPath);
-    snprintf(obj_open_in.objPath, MAX_NAME_LEN, "%s", rods_path->outPath);
+    snprintf(obj_put_in.objPath, MAX_NAME_LEN, "%s", rods_path->outPath);
 
     tmpname = copy_str(local_path, MAX_STR_LEN);
     if (!tmpname) goto error;
 
-    obj_open_in.openFlags  = O_WRONLY;
-    obj_open_in.createMode = 0750;
-    obj_open_in.dataSize   = getFileSize(tmpname);
+    obj_put_in.openFlags  = O_WRONLY;
+    obj_put_in.createMode = 0750;
+    obj_put_in.dataSize   = getFileSize(tmpname);
+
+    logmsg(DEBUG, "Size of '%s' is %d", obj_put_in.objPath, obj_put_in.dataSize);
 
     if ((flags & VERIFY_CHECKSUM) && (flags & CALCULATE_CHECKSUM)) {
         set_baton_error(error, USER_INPUT_OPTION_ERR,
@@ -152,30 +154,30 @@ int put_data_obj(baton_session_t *session, const char *local_path, rodsPath_t *r
 	
         logmsg(DEBUG, "Server will verify '%s' after put",
                rods_path->outPath);
-        addKeyVal(&obj_open_in.condInput, VERIFY_CHKSUM_KW, chksum);
+        addKeyVal(&obj_put_in.condInput, VERIFY_CHKSUM_KW, chksum);
     }
     else if (flags & CALCULATE_CHECKSUM) {
         logmsg(DEBUG, "Server will calculate checksum for '%s'",
                rods_path->outPath);
-        addKeyVal(&obj_open_in.condInput, REG_CHKSUM_KW, "");
+        addKeyVal(&obj_put_in.condInput, REG_CHKSUM_KW, "");
     }
 
     if (flags & WRITE_LOCK) {
         logmsg(DEBUG, "Enabling put write lock for '%s'", rods_path->outPath);
-        addKeyVal(&obj_open_in.condInput, LOCK_TYPE_KW, WRITE_LOCK_TYPE);
+        addKeyVal(&obj_put_in.condInput, LOCK_TYPE_KW, WRITE_LOCK_TYPE);
     }
     if (default_resource) {
         logmsg(DEBUG, "Using '%s' as the default iRODS resource",
                default_resource);
-        addKeyVal(&obj_open_in.condInput, DEF_RESC_NAME_KW, default_resource);
+        addKeyVal(&obj_put_in.condInput, DEF_RESC_NAME_KW, default_resource);
     }
 
     // Always force put over any existing data to make puts idempotent.
-    addKeyVal(&obj_open_in.condInput, FORCE_FLAG_KW, "");
+    addKeyVal(&obj_put_in.condInput, FORCE_FLAG_KW, "");
 
-    if (redirect_for_put(session, &obj_open_in, error)) goto error;
+    if (redirect_for_put(session, &obj_put_in, error)) goto error;
 
-    status = rcDataObjPut(session->conn, &obj_open_in, tmpname);
+    status = rcDataObjPut(session->conn, &obj_put_in, tmpname);
     if (status < 0) {
         char *err_subname;
         const char *err_name = rodsErrorName(status, &err_subname);

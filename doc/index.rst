@@ -308,6 +308,12 @@ Options
   Prints command line help.
 
 .. program:: baton-get
+.. option:: --no-clobber
+
+  When saving data objects to files, raise an error rather than overwrite an
+  existing local file.
+
+.. program:: baton-get
 .. option:: --raw
 
   Prints the contents of the data object instead of a JSON response. In this
@@ -354,6 +360,11 @@ Options
 .. option:: --verbose
 
   Print verbose messages to STDERR.
+
+.. program:: baton-get
+.. option:: --verify
+
+  When saving data objects to files, verify the file checksums after saving.
 
 .. program:: baton-get
 .. option:: --version
@@ -773,8 +784,10 @@ value must be a string naming a ``baton`` operation to be performed
 JSON object. The envelope has one optional property `arguments` which,
 if present, must be a JSON object whose keys and values may be any of
 the command line options permitted for the standard ``baton`` clients
-supporting the previously named operations. Where command line options
-are boolean flags, a JSON `true` value should be used.
+supporting the previously named operations (without the leading `--`,
+e.g. the `--no-clobber` option for `get` becomes `no-clobber`). Where
+command line options are boolean flags, a JSON `true` value should be
+used.
 
 Options
 ^^^^^^^

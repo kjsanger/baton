@@ -77,7 +77,6 @@ json_t *ingest_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
         goto error;
     }
 
-    // Currently only data objects are supported
     if (rods_path->objType != DATA_OBJ_T) {
         set_baton_error(error, USER_INPUT_PATH_ERR,
                         "Cannot read the contents of '%s' because "
@@ -327,6 +326,8 @@ char *slurp_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj,
 
     init_baton_error(error);
 
+    logmsg(DEBUG, "Using a transfer buffer size of %zu bytes", buffer_size);
+
     buffer = calloc(buffer_size +1, sizeof (char));
     if (!buffer) {
         logmsg(ERROR, "Failed to allocate memory: error %d %s",
@@ -398,7 +399,7 @@ char *slurp_data_obj(rcComm_t *conn, const data_obj_file_t *data_obj,
     logmsg(NOTICE, "Wrote %zu bytes from '%s' to buffer having MD5 %s",
            num_read, data_obj->path, data_obj->md5_last_read);
 
-    if (buffer) free(buffer);
+    free(buffer);
 
     return content;
 
@@ -409,48 +410,57 @@ error:
     return NULL;
 }
 
-int get_data_obj_file(rcComm_t *conn, rodsPath_t *rods_path,
-                      const char *local_path, const size_t buffer_size,
-                      baton_error_t *error) {
-    FILE *stream = NULL;
+int get_data_obj_file(rcComm_t *conn, rodsPath_t *rods_path, const char *local_path,
+                      option_flags flags, baton_error_t *error) {
+    char *tmpname  = NULL;
+    dataObjInp_t obj_get_in = {0};
+    int status;
 
     init_baton_error(error);
 
-    if (buffer_size == 0) {
-        set_baton_error(error, -1, "Invalid buffer_size argument %zu",
-                        buffer_size);
-        goto finally;
-    }
-
-    logmsg(DEBUG, "Writing '%s' to '%s'", rods_path->outPath, local_path);
-
-    // Currently only data objects are supported
     if (rods_path->objType != DATA_OBJ_T) {
         set_baton_error(error, USER_INPUT_PATH_ERR,
-                        "Cannot write the contents of '%s' because "
+                        "Cannot get '%s' because "
                         "it is not a data object", rods_path->outPath);
-        goto finally;
+        goto error;
     }
 
-    stream = fopen(local_path, "w");
-    if (!stream) {
-        set_baton_error(error, errno,
-                        "Failed to open '%s' for writing: error %d %s",
-                        local_path, errno, strerror(errno));
-        goto finally;
+    obj_get_in.openFlags = O_RDONLY;
+
+    logmsg(DEBUG, "Getting '%s'", rods_path->outPath);
+    snprintf(obj_get_in.objPath, MAX_NAME_LEN, "%s", rods_path->outPath);
+
+    if (flags & VERIFY_CHECKSUM) {
+        logmsg(DEBUG, "Will verify the checksum of '%s' after get", local_path);
+        addKeyVal(&obj_get_in.condInput, VERIFY_CHKSUM_KW, "");
     }
 
-    get_data_obj_stream(conn, rods_path, stream, buffer_size, error);
-    const int status = fclose(stream);
-
-    if (error->code != 0) goto finally;
-    if (status != 0) {
-        set_baton_error(error, errno,
-                        "Failed to close '%s': error %d %s",
-                        local_path, errno, strerror(errno));
+    if (flags & FORCE) {
+        logmsg(DEBUG, "Will force overwrite '%s' if necessary", local_path);
+        addKeyVal(&obj_get_in.condInput, FORCE_FLAG_KW, "");
     }
 
-finally:
+    tmpname = copy_str(local_path, MAX_STR_LEN);
+    if (!tmpname) goto error;
+
+    status = rcDataObjGet(conn, &obj_get_in, tmpname);
+    if (status < 0) {
+        char *err_subname;
+        const char *err_name = rodsErrorName(status, &err_subname);
+        set_baton_error(error, status,
+                        "Failed to get data object: '%s' to '%s', error %d %s",
+                        rods_path->outPath, local_path, status, err_name);
+        goto error;
+    }
+    logmsg(NOTICE, "Get of '%s' to '%s' completed", rods_path->outPath, local_path);
+
+    free(tmpname);
+
+    return error->code;
+
+error:
+    if (tmpname) free(tmpname);
+
     return error->code;
 }
 
@@ -505,11 +515,10 @@ error:
 char *checksum_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
                         option_flags flags, baton_error_t *error) {
     char *checksum = NULL;
-    dataObjInp_t obj_chk_in;
+    dataObjInp_t obj_chk_in = {0};
 
     init_baton_error(error);
 
-    memset(&obj_chk_in, 0, sizeof obj_chk_in);
     obj_chk_in.openFlags = O_RDONLY;
 
     if (rods_path->objState == NOT_EXIST_ST) {
@@ -544,9 +553,9 @@ char *checksum_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
     }
 
     if (!(flags & VERIFY_CHECKSUM) && !(flags & CALCULATE_CHECKSUM)) {
-	logmsg(DEBUG, "No checksum operation specified for '%s', defaulting "
+        logmsg(DEBUG, "No checksum operation specified for '%s', defaulting "
 	       "to calculating a checksum",  rods_path->outPath);
-	flags = flags | CALCULATE_CHECKSUM;
+        flags = flags | CALCULATE_CHECKSUM;
     }
     else if ((flags & VERIFY_CHECKSUM) && (flags & CALCULATE_CHECKSUM)) {
         set_baton_error(error, USER_INPUT_OPTION_ERR,
@@ -556,9 +565,9 @@ char *checksum_data_obj(rcComm_t *conn, rodsPath_t *rods_path,
     }
 
     if (flags & VERIFY_CHECKSUM) {
-	logmsg(DEBUG, "Verifying checksums of all replicates "
+        logmsg(DEBUG, "Verifying checksums of all replicates "
                "of data object '%s'", rods_path->outPath);
-	// This operates on all replicas without requiring CHKSUM_ALL_KW
+        // This operates on all replicas without requiring CHKSUM_ALL_KW
         addKeyVal(&obj_chk_in.condInput, VERIFY_CHKSUM_KW, "");
     }
     else if (flags & CALCULATE_CHECKSUM) {
